@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "custom-openspec-workflow"
+version = "0.1.0"
+description = "A user-level policy and thin Grill Me adapter for stock OpenSpec."
+requires-python = ">=3.10"
+dependencies = ["PyYAML>=6.0"]
+
+[project.scripts]
+custom-openspec-init = "custom_openspec.bootstrap:main"
+custom-openspec-grill = "custom_openspec.grill_cli:main"
+custom-openspec-install = "custom_openspec.install:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+custom_openspec = [
+  "data/*.yaml",
+  "data/custom-openspec-grill/SKILL.md",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

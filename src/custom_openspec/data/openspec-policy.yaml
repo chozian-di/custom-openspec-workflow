@@ -1,0 +1,52 @@
+rules:
+  proposal:
+    - "Read the current repository context and any change-local grill.md before you write this artifact."
+    - "Keep confirmed intent, constraints, decisions, resolved assumptions, open questions, and non-goals aligned with the proposal."
+    - "Keep unresolved questions in Open Questions. Do not present them as resolved decisions."
+  specs:
+    - "Read the current repository context and any change-local grill.md before you write this artifact."
+    - "Write observable requirements and scenarios. Keep the stock spec-driven artifact shape."
+    - "Preserve confirmed decisions and non-goals from grill.md as supplemental planning input."
+  design:
+    - "Read the current repository context, relevant source, and any change-local grill.md before you write this artifact."
+    - "Resolve design questions that change the requirements, approach, or task breakdown before implementation."
+    - "Keep implementation choices consistent with confirmed Grill decisions and the stock spec-driven boundary."
+  tasks:
+    - "Use the stock tasks.md format and group work into coherent implementation areas."
+    - "Order tasks by useful dependencies. Do not add scheduler waves, worker assignments, token estimates, mutex data, agent IDs, or parallel-safety labels."
+    - "When changed behavior is reasonably unit-testable, add or update a suitable unit test. Test-Driven Development is not required. Implementation can come before tests."
+    - "Prefer project-native automated checks. Add Human UAT only for acceptance that automation cannot reasonably establish."
+    - "When automation covers every acceptance criterion, record HUMAN UAT - NOT APPLICABLE: <reason> in the task or acceptance record. This is not PASSED or WAIVED BY USER and does not create a manual task."
+    - "Keep applicable Human UAT as independent normal task checkboxes. Record user disposition as HUMAN UAT - PASSED or HUMAN UAT - WAIVED BY USER."
+    - "Do not self-pass UAT or infer a waiver. Reopen only UAT scenarios that a later substantive change can affect."
+    - "Keep Verify as a workflow review. Do not add verification.md or a Verify checkbox to tasks.md."
+
+operations:
+  apply:
+    guidance:
+      - "This is advisory guidance. Native OpenSpec commands, task state, and explicit user decisions remain authoritative."
+      - "Before implementation, read the current repository state, relevant configuration, tests, planning artifacts, and applicable change-local grill.md."
+      - "If repository state conflicts with the proposal, specs, design, or Grill decisions, report the conflict and pause for Update or an explicit user decision. Do not silently change planning intent."
+      - "Work through coherent groups of related tasks. Run focused automated checks at each group boundary and mark each fully completed task promptly."
+      - "At each coherent group boundary, refresh the current OpenSpec Apply state, reassess completed and remaining tasks, and select the next group. This lightweight re-anchor does not reread every artifact after every task."
+      - "Use a full re-anchor after interruption, OpenSpec Update, any planning artifact change, a material assumption or design problem, delegated work that affects later implementation, or a conflict between code and the recorded plan. Reread the relevant planning artifacts and current repository context."
+      - "Use Apply when the plan is correct and the implementation does not satisfy it. Use Update when the plan is incomplete, incorrect, contradictory, or no longer describes the desired behavior. After Update, return to Apply."
+      - "When a changed behavior is reasonably unit-testable, add or update a suitable unit test. Do not require a RED, GREEN, REFACTOR process."
+      - "Do not add manual acceptance work that duplicates a reliable automated check."
+      - "When automation covers every acceptance criterion, record HUMAN UAT - NOT APPLICABLE: <reason> in the task or acceptance record. This note is not a pass or a waiver and does not create a manual task."
+      - "When Human UAT applies, add separate task checkboxes for independently invalidatable scenarios. Pause at each incomplete UAT task and give the user manual steps and expected results."
+      - "Only the user can pass or waive Human UAT. Do not mark HUMAN UAT - PASSED from agent inspection. Do not infer HUMAN UAT - WAIVED BY USER."
+      - "A user pass record must say HUMAN UAT - PASSED. A user waiver record must say HUMAN UAT - WAIVED BY USER. These records are different."
+      - "A Verify finding alone does not invalidate completed UAT. After a substantive implementation change, assess each passed or waived scenario and reopen only the scenarios that the change could affect. A relevant change also invalidates a waiver."
+      - "After all implementation tasks and applicable UAT tasks are resolved, recommend /opsx:verify before Archive. Verify is a workflow review, not a tasks.md checkbox."
+      - "Verify must compare requirements, scenarios, task state, automated test results, and applicable UAT results. A Verify result covers only the substantive implementation state that it inspected."
+      - "If a substantive implementation change follows Verify, treat the result as stale. Run Apply, affected UAT when needed, and Verify again. A non-substantive change can retain Verify only when it cannot affect correctness. Run Verify again when uncertain."
+      - "Guidance is advisory. It does not replace OpenSpec Apply, Update, Verify, or Archive and does not prove that a user completed UAT."
+  archive:
+    guidance:
+      - "This is advisory guidance. Native OpenSpec Archive behavior and explicit user decisions remain authoritative."
+      - "Before Archive, confirm that normal implementation tasks are complete, required Human UAT is PASSED or WAIVED BY USER, no resolved scenario was affected by later implementation, and Verify covers the latest substantive implementation state."
+      - "If Verify is missing, stale, or uncertain, recommend /opsx:verify instead of Archive."
+      - "If required UAT is incomplete, name each scenario and ask the user to perform it or explicitly record HUMAN UAT - WAIVED BY USER for that scenario. Do not self-waive or recommend Archive by default."
+      - "If a later substantive change affects a passed or waived scenario, reopen only that scenario and repeat the required user disposition before Archive."
+      - "Preserve unresolved requirements, automated test evidence, Grill context, and project configuration. Do not claim that guidance alone made Archive safe."

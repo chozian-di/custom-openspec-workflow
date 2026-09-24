@@ -1,0 +1,12 @@
+schema: spec-driven
+context: |
+  Fixture context belongs to the project.
+rules:
+  proposal:
+    - Fixture proposal rule.
+operations:
+  apply:
+    guidance:
+      - Fixture Apply guidance.
+fixtureField:
+  owner: fixture-user
