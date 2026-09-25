@@ -128,18 +128,102 @@ class InstallTests(unittest.TestCase):
             grill_wrapper = bin_dir / "custom-openspec-grill"
             init_text = init_wrapper.read_text(encoding="utf-8")
             grill_text = grill_wrapper.read_text(encoding="utf-8")
+            self.assertTrue(init_text.startswith("#!/bin/sh\n"))
+            self.assertIn('if [ "${PYTHONPYCACHEPREFIX+x}" != x ]', init_text)
+            self.assertIn("export PYTHONPYCACHEPREFIX", init_text)
+            self.assertIn("install_root = sys.argv.pop(1)", init_text)
+            self.assertIn("sys.path.insert(0, install_root)", init_text)
+            self.assertLess(init_text.index("export PYTHONPYCACHEPREFIX"), init_text.index("exec python3"))
             self.assertIn("from custom_openspec_workflow.bootstrap import main", init_text)
             self.assertIn("from custom_openspec_workflow.grill_cli import main", grill_text)
 
+            subprocess_environment = os.environ.copy()
+            subprocess_environment.pop("PYTHONPYCACHEPREFIX", None)
+            subprocess_environment["HOME"] = str(home)
             for wrapper in (init_wrapper, grill_wrapper):
                 result = subprocess.run(
                     [str(wrapper), "--help"],
+                    env=subprocess_environment,
                     text=True,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
                     check=False,
                 )
                 self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_installed_helper_uses_default_cache_without_package_local_bytecode(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            home = root / "home"
+            with patch.dict(os.environ, {"HOME": str(home)}, clear=False):
+                os.environ.pop("PYTHONPYCACHEPREFIX", None)
+                self.install(root)
+
+            environment = os.environ.copy()
+            environment["HOME"] = str(home)
+            environment.pop("PYTHONPYCACHEPREFIX", None)
+            result = subprocess.run(
+                [str(self.layout(root)["bin_dir"] / "custom-openspec-grill"), "--help"],
+                env=environment,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            installed_package = self.layout(root)["install_dir"] / "custom_openspec_workflow"
+            self.assertFalse(list(installed_package.rglob("__pycache__")))
+            cache_root = home / ".cache" / "custom-openspec-workflow"
+            self.assertTrue(list(cache_root.rglob("*.pyc")))
+
+    def test_explicit_cache_is_unowned_and_survives_uninstall(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            home = root / "home"
+            with patch.dict(os.environ, {"HOME": str(home)}, clear=False):
+                os.environ.pop("PYTHONPYCACHEPREFIX", None)
+                self.install(root)
+
+            explicit_cache = root / "selected-cache"
+            environment = os.environ.copy()
+            environment["HOME"] = str(home)
+            environment["PYTHONPYCACHEPREFIX"] = str(explicit_cache)
+            result = subprocess.run(
+                [str(self.layout(root)["bin_dir"] / "custom-openspec-init"), "--help"],
+                env=environment,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            cache_files = list(explicit_cache.rglob("*.pyc"))
+            self.assertTrue(cache_files)
+            self.assertFalse((home / ".cache" / "custom-openspec-workflow").exists())
+
+            layout = self.layout(root)
+            manifest_path = layout["install_dir"] / "manifest.json"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest_paths = [Path(path) for path in manifest["files"]]
+            self.assertFalse(any(path.is_relative_to(explicit_cache) for path in manifest_paths))
+
+            plan = build_install_plan(**layout, source_root=SOURCE_PACKAGE)
+            self.assertFalse(plan.conflicts)
+            self.assertFalse(
+                any(
+                    entry.path == explicit_cache or explicit_cache in entry.path.parents
+                    for entry in plan.entries
+                )
+            )
+
+            payload = uninstall_user(**layout)
+
+            self.assertEqual(payload["preserved"], [])
+            self.assertFalse(manifest_path.exists())
+            self.assertTrue(explicit_cache.is_dir())
+            self.assertEqual(cache_files, [path for path in explicit_cache.rglob("*.pyc")])
 
     def test_explicit_install_directory_overrides_default_data_root(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

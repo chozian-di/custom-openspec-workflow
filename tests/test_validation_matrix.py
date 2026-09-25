@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -14,10 +15,15 @@ PROJECT_ROOT = Path(__file__).parents[1]
 FIXTURES = PROJECT_ROOT / "tests" / "fixtures"
 
 
-def run_script(script: str, *arguments: str) -> subprocess.CompletedProcess[str]:
+def run_script(
+    script: str,
+    *arguments: str,
+    environment: dict[str, str] | None = None,
+) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         [str(PROJECT_ROOT / "scripts" / script), *arguments],
         cwd=PROJECT_ROOT,
+        env=environment,
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -26,6 +32,37 @@ def run_script(script: str, *arguments: str) -> subprocess.CompletedProcess[str]
 
 
 class ValidationMatrixTests(unittest.TestCase):
+    def test_repository_launchers_use_disposable_cache_roots(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            home = root / "home"
+            environment = os.environ.copy()
+            environment["HOME"] = str(home)
+            environment.pop("PYTHONPYCACHEPREFIX", None)
+
+            for script in (
+                "custom-openspec-install",
+                "custom-openspec-init",
+                "custom-openspec-grill",
+            ):
+                result = run_script(script, "--help", environment=environment)
+                self.assertEqual(result.returncode, 0, result.stderr)
+
+            default_cache = home / ".cache" / "custom-openspec-workflow"
+            self.assertTrue(list(default_cache.rglob("*.pyc")))
+
+            explicit_cache = root / "explicit-cache"
+            environment["PYTHONPYCACHEPREFIX"] = str(explicit_cache)
+            for script in (
+                "custom-openspec-install",
+                "custom-openspec-init",
+                "custom-openspec-grill",
+            ):
+                result = run_script(script, "--help", environment=environment)
+                self.assertEqual(result.returncode, 0, result.stderr)
+
+            self.assertTrue(list(explicit_cache.rglob("*.pyc")))
+
     def test_disposable_brownfield_matrix_bootstrap_grill_and_rollback(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

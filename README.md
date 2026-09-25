@@ -143,6 +143,23 @@ CUSTOM_OPENSPEC_WORKFLOW_BIN_DIR=~/.local/bin
 Use `--install-dir` when you need a different package data root. The default
 is `~/.local/share/custom-openspec-workflow`.
 
+The persistent package path is `<install-dir>/custom_openspec_workflow`. The
+installer keeps Python source files and the ownership manifest there.
+
+Python bytecode is compiled `.pyc` file data. When
+`PYTHONPYCACHEPREFIX` is not set, installed helpers and repository launchers
+use `~/.cache/custom-openspec-workflow` for this data. They set the cache path
+before Python starts. The cache can also contain bytecode for imported Python
+dependencies.
+
+Set `PYTHONPYCACHEPREFIX` when you need another cache path. The helpers keep
+the value that you set:
+
+```text
+PYTHONPYCACHEPREFIX=/tmp/custom-openspec-cache \
+  ./scripts/custom-openspec-grill --help
+```
+
 The ownership manifest is a JSON file at `<install-dir>/manifest.json`. It
 records each package-owned file, its content hash, its file mode, and the
 directories that the installer created. The installer uses this record during
@@ -172,7 +189,9 @@ Use `--yes` for a non-interactive uninstall. Uninstall removes only unchanged
 files in the ownership manifest. It preserves modified files and reports each
 preserved path. It also removes empty directories that the installer created.
 It keeps the install root, unrelated files, Grill staging sessions, and the
-upstream `grill-me` skill.
+upstream `grill-me` skill. It does not remove files from
+`~/.cache/custom-openspec-workflow` or from a path that you set with
+`PYTHONPYCACHEPREFIX`.
 
 If the ownership manifest is missing or invalid, uninstall refuses to guess
 which files it can remove. It leaves all paths unchanged.

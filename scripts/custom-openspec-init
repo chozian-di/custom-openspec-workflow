@@ -1,4 +1,8 @@
 #!/bin/sh
 set -eu
+if [ "${PYTHONPYCACHEPREFIX+x}" != x ]; then
+    PYTHONPYCACHEPREFIX="${HOME}/.cache/custom-openspec-workflow"
+fi
+export PYTHONPYCACHEPREFIX
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 exec env PYTHONPATH="$script_dir/../src${PYTHONPATH:+:$PYTHONPATH}" python3 -m custom_openspec_workflow.bootstrap "$@"

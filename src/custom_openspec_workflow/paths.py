@@ -13,6 +13,12 @@ def default_data_root() -> Path:
     return Path.home() / ".local" / "share" / "custom-openspec-workflow"
 
 
+def default_cache_root() -> Path:
+    """Return the user-level bytecode cache root for this project at call time."""
+
+    return Path.home() / ".cache" / "custom-openspec-workflow"
+
+
 def default_grill_staging_dir() -> Path:
     """Return the default Grill staging directory at call time."""
 

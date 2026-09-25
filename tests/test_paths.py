@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 from custom_openspec_workflow import PACKAGE_NAME
 from custom_openspec_workflow.paths import (
+    default_cache_root,
     default_data_root,
     default_grill_staging_dir,
     grill_skill_path,
@@ -40,6 +41,18 @@ class PackagePathTests(unittest.TestCase):
 
         self.assertEqual(first, Path(first_directory) / ".local" / "share" / "custom-openspec-workflow")
         self.assertEqual(second, Path(second_directory) / ".local" / "share" / "custom-openspec-workflow")
+        self.assertNotEqual(first, second)
+
+    def test_default_cache_root_is_calculated_for_the_current_home(self) -> None:
+        with tempfile.TemporaryDirectory() as first_directory:
+            with tempfile.TemporaryDirectory() as second_directory:
+                with patch.dict(os.environ, {"HOME": first_directory}):
+                    first = default_cache_root()
+                with patch.dict(os.environ, {"HOME": second_directory}):
+                    second = default_cache_root()
+
+        self.assertEqual(first, Path(first_directory) / ".cache" / "custom-openspec-workflow")
+        self.assertEqual(second, Path(second_directory) / ".cache" / "custom-openspec-workflow")
         self.assertNotEqual(first, second)
 
     def test_grill_default_uses_project_root_or_explicit_environment_override(self) -> None:

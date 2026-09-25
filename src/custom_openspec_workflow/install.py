@@ -13,13 +13,14 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import shlex
 import stat
 import sys
 import tempfile
 from typing import Any, Iterable, Sequence
 
 from .host import HostLayout, UnsupportedHostError, discover_host
-from .paths import default_data_root
+from .paths import default_cache_root, default_data_root
 
 
 MANIFEST_FILENAME = "manifest.json"
@@ -181,11 +182,20 @@ def _path_is_within(path: Path, root: Path) -> bool:
 
 
 def _wrapper_content(install_root: Path, module: str) -> bytes:
-    content = "#!/usr/bin/env python3\n" + (
+    content = (
+        "#!/bin/sh\n"
+        "set -eu\n"
+        'if [ "${PYTHONPYCACHEPREFIX+x}" != x ]; then\n'
+        f"    PYTHONPYCACHEPREFIX={shlex.quote(str(default_cache_root()))}\n"
+        "fi\n"
+        "export PYTHONPYCACHEPREFIX\n"
+        f"exec python3 - {shlex.quote(str(install_root))} \"$@\" <<'PY'\n"
         "import sys\n"
-        f"sys.path.insert(0, {str(install_root)!r})\n"
+        "install_root = sys.argv.pop(1)\n"
+        "sys.path.insert(0, install_root)\n"
         f"from {module} import main\n"
         "raise SystemExit(main())\n"
+        "PY\n"
     )
     return content.encode("utf-8")
 
