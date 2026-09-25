@@ -68,12 +68,64 @@ From this repository, run:
   --bin-dir ~/.local/bin
 ```
 
+The installer shows a plan before it changes a user-level path. The plan lists
+created, replaced, preserved, conflicting, and removed paths. The installer
+asks for confirmation after it shows the plan.
+
 The installer places these files in user-level locations:
 
 - `~/.agents/skills/custom-openspec-grill/SKILL.md`.
 - `~/.local/bin/custom-openspec-init`.
 - `~/.local/bin/custom-openspec-grill`.
 - `~/.local/share/custom-openspec-workflow/custom_openspec_workflow`.
+- `~/.local/share/custom-openspec-workflow/manifest.json`.
+
+Use `-y` or `--yes` when the command must run without a confirmation prompt:
+
+```text
+./scripts/custom-openspec-install \
+  --host codex \
+  --source-root src/custom_openspec_workflow \
+  --skills-dir ~/.agents/skills \
+  --bin-dir ~/.local/bin \
+  --yes
+```
+
+The two options have the same effect. They skip the prompt. They do not skip
+ownership or conflict checks.
+
+Use `--dry-run` to display the plan without changing files:
+
+```text
+./scripts/custom-openspec-install \
+  --source-root src/custom_openspec_workflow \
+  --skills-dir ~/.agents/skills \
+  --bin-dir ~/.local/bin \
+  --dry-run
+```
+
+Use `--json` when another program needs the plan or the result. A write-mode
+JSON command writes the complete plan to standard error before confirmation or
+apply. It writes the final result object to standard output. A JSON dry run
+writes its result object, which includes the plan, to standard output. In
+interactive JSON mode, the prompt is also written to standard error. For a
+non-interactive command, add `-y` or `--yes`.
+
+```text
+./scripts/custom-openspec-install \
+  --source-root src/custom_openspec_workflow \
+  --skills-dir ~/.agents/skills \
+  --bin-dir ~/.local/bin \
+  --dry-run \
+  --json
+
+./scripts/custom-openspec-install \
+  --source-root src/custom_openspec_workflow \
+  --skills-dir ~/.agents/skills \
+  --bin-dir ~/.local/bin \
+  --yes \
+  --json
+```
 
 The installer does not install a different host layout. If the host is not
 Codex, the installer reports that the host is unsupported. If the required
@@ -91,13 +143,48 @@ CUSTOM_OPENSPEC_WORKFLOW_BIN_DIR=~/.local/bin
 Use `--install-dir` when you need a different package data root. The default
 is `~/.local/share/custom-openspec-workflow`.
 
+The ownership manifest is a JSON file at `<install-dir>/manifest.json`. It
+records each package-owned file, its content hash, its file mode, and the
+directories that the installer created. The installer uses this record during
+later installs and during uninstall.
+
+If an existing target is not in the manifest, the installer reports a conflict
+and writes nothing. If a managed file changed after installation, the
+installer reports a conflict and writes nothing. `-y` and `--yes` do not
+override these checks.
+
+Run the installer again after a package update. The installer replaces a
+managed file only when its current content still matches the manifest. It can
+remove an old managed file during an upgrade when that file is unchanged.
+
+To remove the user-level package, run:
+
+```text
+./scripts/custom-openspec-install \
+  --host codex \
+  --install-dir ~/.local/share/custom-openspec-workflow \
+  --skills-dir ~/.agents/skills \
+  --bin-dir ~/.local/bin \
+  --uninstall
+```
+
+Use `--yes` for a non-interactive uninstall. Uninstall removes only unchanged
+files in the ownership manifest. It preserves modified files and reports each
+preserved path. It also removes empty directories that the installer created.
+It keeps the install root, unrelated files, Grill staging sessions, and the
+upstream `grill-me` skill.
+
+If the ownership manifest is missing or invalid, uninstall refuses to guess
+which files it can remove. It leaves all paths unchanged.
+
+User-level uninstall does not reverse repository bootstrap. It does not remove
+`custom-openspec-init` changes from a repository. It does not edit repository
+source files, `.agents`, `openspec`, or OpenSpec global configuration. Change
+those repository files separately when that cleanup is required.
+
 The upstream Grill Me skill is a prerequisite for Grill sessions. Install it
 from `satya-janghu/agent-skills` with the host method that you use. The package
 does not install or change Grill Me.
-
-After an OpenSpec or package update, run the installer again to refresh the
-user-level copy. The installer replaces only the package-owned install
-directory and the package-owned skill and helper names.
 
 ## Bootstrap a repository
 
