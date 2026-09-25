@@ -11,7 +11,7 @@ import re
 import tempfile
 
 from .host import UnsupportedHostError, discover_host
-from .paths import grill_skill_path
+from .paths import default_grill_staging_dir, grill_skill_path
 from .yaml_config import write_text_atomic
 
 
@@ -46,7 +46,7 @@ def discover_grill_me_skill(skills_dir: Path | None = None) -> Path | None:
         roots = [skills_dir.expanduser().resolve()]
     else:
         try:
-            roots = [discover_host("codex").skills_dir]
+            roots = [discover_host().skills_dir]
         except UnsupportedHostError:
             return None
 
@@ -88,8 +88,7 @@ class GrillSession:
 
 
 def default_staging_dir() -> Path:
-    configured = Path.home() / ".local" / "share" / "custom-openspec" / "grill"
-    return Path(__import__("os").environ.get("CUSTOM_OPENSPEC_GRILL_HOME", configured)).expanduser()
+    return default_grill_staging_dir()
 
 
 def _session_id(source_sha256: str, source_path: Path) -> str:
@@ -126,7 +125,7 @@ def stage_source(source: Path, staging_dir: Path | None = None) -> GrillSession:
         raise GrillError(f"Grill source does not exist: {source}")
     content = source.read_bytes()
     digest = hashlib.sha256(content).hexdigest()
-    staging_root = (staging_dir or default_staging_dir()).expanduser().resolve()
+    staging_root = (staging_dir if staging_dir is not None else default_staging_dir()).expanduser().resolve()
     session_id = _session_id(digest, source)
     session_dir = staging_root / "sessions" / session_id
     session_dir.mkdir(parents=True, exist_ok=True)
@@ -151,7 +150,9 @@ def stage_source(source: Path, staging_dir: Path | None = None) -> GrillSession:
 def find_session(session_id: str, staging_dir: Path | None = None) -> GrillSession:
     if not re.fullmatch(r"grill-[a-f0-9]{20}", session_id):
         raise GrillError("The Grill session identity is invalid")
-    root = (staging_dir or default_staging_dir()).expanduser().resolve() / "sessions" / session_id
+    root = (
+        staging_dir if staging_dir is not None else default_staging_dir()
+    ).expanduser().resolve() / "sessions" / session_id
     if not root.is_dir():
         raise GrillError(f"Grill session was not found: {session_id}")
     session = _load_session(root)

@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import os
 import tempfile
 from pathlib import Path
 import unittest
+from unittest.mock import patch
 
-from custom_openspec.grill import (
+from custom_openspec_workflow.grill import (
     ExistingGrillContextError,
     REQUIRED_SECTIONS,
     attach_session,
@@ -93,6 +95,24 @@ class GrillTests(unittest.TestCase):
             rendered = render_grill_context(session, SOURCE)
             self.assertIn("supplemental planning context", rendered)
             self.assertIn("Resolved decisions stay in Decisions", rendered)
+
+    def test_explicit_staging_directory_overrides_environment_default(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "source.md"
+            source.write_text(SOURCE, encoding="utf-8")
+            environment_staging = root / "environment-staging"
+            explicit_staging = root / "explicit-staging"
+
+            with patch.dict(
+                os.environ,
+                {"CUSTOM_OPENSPEC_WORKFLOW_GRILL_HOME": str(environment_staging)},
+            ):
+                session = stage_source(source, explicit_staging)
+
+            self.assertEqual(session.staging_dir, explicit_staging / "sessions")
+            self.assertTrue(session.staged_source.is_file())
+            self.assertFalse(environment_staging.exists())
 
     def test_compatibility_discovers_dependency_and_checks_isolated_contract(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

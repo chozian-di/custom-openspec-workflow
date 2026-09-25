@@ -22,7 +22,7 @@ OpenSpec owns these parts:
 
 This package owns these parts:
 
-- The policy in `src/custom_openspec/data/openspec-policy.yaml`.
+- The policy in `src/custom_openspec_workflow/data/openspec-policy.yaml`.
 - `custom-openspec-init`.
 - `custom-openspec-grill` staging and attachment commands.
 - The user-level `custom-openspec-grill` skill.
@@ -63,7 +63,7 @@ From this repository, run:
 ```text
 ./scripts/custom-openspec-install \
   --host codex \
-  --source-root src/custom_openspec \
+  --source-root src/custom_openspec_workflow \
   --skills-dir ~/.agents/skills \
   --bin-dir ~/.local/bin
 ```
@@ -73,12 +73,23 @@ The installer places these files in user-level locations:
 - `~/.agents/skills/custom-openspec-grill/SKILL.md`.
 - `~/.local/bin/custom-openspec-init`.
 - `~/.local/bin/custom-openspec-grill`.
-- `~/.local/share/custom-openspec/custom_openspec`.
+- `~/.local/share/custom-openspec-workflow/custom_openspec_workflow`.
 
 The installer does not install a different host layout. If the host is not
 Codex, the installer reports that the host is unsupported. If the required
 directories are not present or writable, pass explicit existing paths with
 `--skills-dir` and `--bin-dir`.
+
+You can set the host configuration with these variables:
+
+```text
+CUSTOM_OPENSPEC_WORKFLOW_HOST=codex
+CUSTOM_OPENSPEC_WORKFLOW_SKILLS_DIR=~/.agents/skills
+CUSTOM_OPENSPEC_WORKFLOW_BIN_DIR=~/.local/bin
+```
+
+Use `--install-dir` when you need a different package data root. The default
+is `~/.local/share/custom-openspec-workflow`.
 
 The upstream Grill Me skill is a prerequisite for Grill sessions. Install it
 from `satya-janghu/agent-skills` with the host method that you use. The package
@@ -176,11 +187,11 @@ not depend only on the generated filename slug.
 The default staging path is:
 
 ```text
-~/.local/share/custom-openspec/grill/sessions/<session-id>/
+~/.local/share/custom-openspec-workflow/grill/sessions/<session-id>/
 ```
 
-Set `CUSTOM_OPENSPEC_GRILL_HOME` when you need another user-level staging
-path. The source file in `.grill` remains unchanged.
+Set `CUSTOM_OPENSPEC_WORKFLOW_GRILL_HOME` when you need another user-level
+staging path. The source file in `.grill` remains unchanged.
 
 ### Attach Grill to a named change
 

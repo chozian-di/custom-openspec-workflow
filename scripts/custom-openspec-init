@@ -1,4 +1,4 @@
 #!/bin/sh
 set -eu
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-exec env PYTHONPATH="$script_dir/../src${PYTHONPATH:+:$PYTHONPATH}" python3 -m custom_openspec.bootstrap "$@"
+exec env PYTHONPATH="$script_dir/../src${PYTHONPATH:+:$PYTHONPATH}" python3 -m custom_openspec_workflow.bootstrap "$@"

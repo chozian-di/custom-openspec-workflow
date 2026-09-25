@@ -9,7 +9,7 @@ import tempfile
 import textwrap
 import unittest
 
-from custom_openspec.bootstrap import BootstrapError, NonStockSchemaError, bootstrap
+from custom_openspec_workflow.bootstrap import BootstrapError, NonStockSchemaError, bootstrap
 
 
 FAKE_OPENSPEC = r'''#!/usr/bin/env python3

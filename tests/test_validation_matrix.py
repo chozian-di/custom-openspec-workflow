@@ -7,7 +7,7 @@ import subprocess
 import tempfile
 import unittest
 
-from custom_openspec.grill import REQUIRED_SECTIONS
+from custom_openspec_workflow.grill import REQUIRED_SECTIONS
 
 
 PROJECT_ROOT = Path(__file__).parents[1]
@@ -131,12 +131,12 @@ class ValidationMatrixTests(unittest.TestCase):
             self.assertEqual(non_stock_config.read_text(encoding="utf-8"), "schema: custom\n")
 
     def test_matrix_covers_the_twelve_lifecycle_scenarios_as_advisory_evidence(self) -> None:
-        policy = (PROJECT_ROOT / "src" / "custom_openspec" / "data" / "openspec-policy.yaml").read_text(encoding="utf-8")
+        policy = (PROJECT_ROOT / "src" / "custom_openspec_workflow" / "data" / "openspec-policy.yaml").read_text(encoding="utf-8")
         readme = (PROJECT_ROOT / "README.md").read_text(encoding="utf-8")
         records = (FIXTURES / "uat-records.md").read_text(encoding="utf-8")
 
         self.assertIn("all target needs fit the supported surfaces", (PROJECT_ROOT / "docs" / "compatibility-baseline.md").read_text(encoding="utf-8").lower())
-        skill = (PROJECT_ROOT / "src" / "custom_openspec" / "data" / "custom-openspec-grill" / "SKILL.md").read_text(encoding="utf-8")
+        skill = (PROJECT_ROOT / "src" / "custom_openspec_workflow" / "data" / "custom-openspec-grill" / "SKILL.md").read_text(encoding="utf-8")
         self.assertIn("Grill is optional", readme)
         self.assertIn("Skip this skill when normal Explore or Propose already has enough information.", skill)
         self.assertLess(readme.index("/opsx:apply"), readme.index("/opsx:verify"))
@@ -164,12 +164,25 @@ class ValidationMatrixTests(unittest.TestCase):
         validation_payload = json.loads(validation.stdout)
         self.assertIsInstance(validation_payload, (dict, list))
 
+        listing = subprocess.run(
+            ["openspec", "list", "--json"],
+            cwd=PROJECT_ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+        self.assertEqual(listing.returncode, 0, listing.stderr)
+        listing_payload = json.loads(listing.stdout)
+        self.assertTrue(listing_payload["changes"])
+        active_change = listing_payload["changes"][0]["name"]
+
         status = subprocess.run(
             [
                 "openspec",
                 "status",
                 "--change",
-                "add-user-level-openspec-customization",
+                active_change,
                 "--json",
             ],
             cwd=PROJECT_ROOT,

@@ -3,12 +3,12 @@ from __future__ import annotations
 from pathlib import Path
 import unittest
 
-from custom_openspec.host import UnsupportedHostError, discover_host
+from custom_openspec_workflow.host import UnsupportedHostError, discover_host
 
 
 class SkillContractTests(unittest.TestCase):
     def test_adapter_delegates_without_copying_question_logic(self) -> None:
-        path = Path(__file__).parents[1] / "src" / "custom_openspec" / "data" / "custom-openspec-grill" / "SKILL.md"
+        path = Path(__file__).parents[1] / "src" / "custom_openspec_workflow" / "data" / "custom-openspec-grill" / "SKILL.md"
         text = path.read_text(encoding="utf-8")
         self.assertIn("name: custom-openspec-grill", text)
         self.assertIn("upstream `grill-me` skill", text)
@@ -24,7 +24,7 @@ class SkillContractTests(unittest.TestCase):
     def test_automated_coverage_uses_a_non_applicable_uat_record(self) -> None:
         root = Path(__file__).parents[1]
         records = (root / "tests" / "fixtures" / "uat-records.md").read_text(encoding="utf-8")
-        policy = (root / "src" / "custom_openspec" / "data" / "openspec-policy.yaml").read_text(encoding="utf-8")
+        policy = (root / "src" / "custom_openspec_workflow" / "data" / "openspec-policy.yaml").read_text(encoding="utf-8")
         readme = (root / "README.md").read_text(encoding="utf-8")
         record = next(
             line for line in records.splitlines() if line.startswith("HUMAN UAT - NOT APPLICABLE:")

@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 import shutil
 import sys
 from typing import Sequence
 
 from .host import HostLayout, UnsupportedHostError, discover_host
-from .paths import grill_skill_path
+from .paths import default_data_root
 
 
 def _source_package_root() -> Path:
@@ -33,15 +34,18 @@ def _write_wrapper(path: Path, install_root: Path, module: str) -> None:
 
 def install_user(
     *,
-    host: str = "codex",
+    host: str | None = None,
     skills_dir: Path | None = None,
     bin_dir: Path | None = None,
     install_dir: Path | None = None,
     source_root: Path | None = None,
     dry_run: bool = False,
 ) -> dict[str, str | bool]:
-    if host.lower() != "codex":
-        raise UnsupportedHostError(f"Unsupported host {host!r}. This package supports Codex only.")
+    selected_host = host or os.environ.get("CUSTOM_OPENSPEC_WORKFLOW_HOST", "codex")
+    if selected_host.lower() != "codex":
+        raise UnsupportedHostError(
+            f"Unsupported host {selected_host!r}. This package supports Codex only."
+        )
     if skills_dir is not None and bin_dir is not None:
         layout = HostLayout(
             "codex",
@@ -49,7 +53,7 @@ def install_user(
             bin_dir.expanduser().resolve(),
         )
     else:
-        discovered = discover_host(host)
+        discovered = discover_host(selected_host)
         layout = HostLayout(
             "codex",
             (skills_dir or discovered.skills_dir).expanduser().resolve(),
@@ -58,11 +62,13 @@ def install_user(
     source_package = (source_root or _source_package_root()).expanduser().resolve()
     if not source_package.is_dir():
         raise UnsupportedHostError(f"Package source does not exist: {source_package}")
-    destination = (install_dir or Path.home() / ".local" / "share" / "custom-openspec").expanduser().resolve()
+    destination = (
+        install_dir if install_dir is not None else default_data_root()
+    ).expanduser().resolve()
     skill_destination = layout.skills_dir / "custom-openspec-grill" / "SKILL.md"
     wrapper_names = {
-        "custom-openspec-init": "custom_openspec.bootstrap",
-        "custom-openspec-grill": "custom_openspec.grill_cli",
+        "custom-openspec-init": "custom_openspec_workflow.bootstrap",
+        "custom-openspec-grill": "custom_openspec_workflow.grill_cli",
     }
     payload = {
         "host": layout.name,
@@ -76,7 +82,7 @@ def install_user(
         return payload
 
     destination.mkdir(parents=True, exist_ok=True)
-    copied_package = destination / "custom_openspec"
+    copied_package = destination / "custom_openspec_workflow"
     if copied_package.exists():
         shutil.rmtree(copied_package)
     shutil.copytree(source_package, copied_package)
@@ -93,7 +99,7 @@ def build_parser() -> argparse.ArgumentParser:
         prog="custom-openspec-install",
         description="Install the custom OpenSpec helpers for Codex.",
     )
-    parser.add_argument("--host", default="codex")
+    parser.add_argument("--host")
     parser.add_argument("--skills-dir", type=Path)
     parser.add_argument("--bin-dir", type=Path)
     parser.add_argument("--install-dir", type=Path)

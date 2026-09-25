@@ -23,7 +23,7 @@ class HostLayout:
 
 def _candidate_skills_dirs() -> list[Path]:
     candidates: list[Path] = []
-    configured = os.environ.get("CUSTOM_OPENSPEC_SKILLS_DIR")
+    configured = os.environ.get("CUSTOM_OPENSPEC_WORKFLOW_SKILLS_DIR")
     if configured:
         candidates.append(Path(configured).expanduser())
     candidates.append(Path.home() / ".agents" / "skills")
@@ -32,7 +32,7 @@ def _candidate_skills_dirs() -> list[Path]:
 
 def _candidate_bin_dirs() -> list[Path]:
     candidates: list[Path] = []
-    configured = os.environ.get("CUSTOM_OPENSPEC_BIN_DIR")
+    configured = os.environ.get("CUSTOM_OPENSPEC_WORKFLOW_BIN_DIR")
     if configured:
         candidates.append(Path(configured).expanduser())
     for item in os.environ.get("PATH", "").split(os.pathsep):
@@ -44,7 +44,7 @@ def _candidate_bin_dirs() -> list[Path]:
 def discover_host(host: str | None = None) -> HostLayout:
     """Discover Codex locations without selecting another host layout."""
 
-    selected = host or os.environ.get("CUSTOM_OPENSPEC_HOST")
+    selected = host or os.environ.get("CUSTOM_OPENSPEC_WORKFLOW_HOST")
     if selected and selected.lower() != SUPPORTED_HOST:
         raise UnsupportedHostError(
             f"Unsupported host {selected!r}. This package supports Codex only."
@@ -56,7 +56,7 @@ def discover_host(host: str | None = None) -> HostLayout:
     )
     if skills_dir is None:
         raise UnsupportedHostError(
-            "Codex was not detected. Set CUSTOM_OPENSPEC_SKILLS_DIR to the existing "
+            "Codex was not detected. Set CUSTOM_OPENSPEC_WORKFLOW_SKILLS_DIR to the existing "
             "user-level .agents/skills directory or pass --skills-dir."
         )
 
@@ -71,7 +71,7 @@ def discover_host(host: str | None = None) -> HostLayout:
     if bin_dir is None:
         raise UnsupportedHostError(
             "No writable user-level executable directory was found in PATH. "
-            "Set CUSTOM_OPENSPEC_BIN_DIR to a writable directory in PATH."
+            "Set CUSTOM_OPENSPEC_WORKFLOW_BIN_DIR to a writable directory in PATH."
         )
     return HostLayout(SUPPORTED_HOST, skills_dir, bin_dir)
 

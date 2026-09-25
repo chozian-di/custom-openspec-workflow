@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from custom_openspec.yaml_config import ConfigurationError, merge_policy
+from custom_openspec_workflow.yaml_config import ConfigurationError, merge_policy
 
 
 POLICY = {
