@@ -24,6 +24,18 @@ REQUIRED_SECTIONS = (
     "Non-Goals or Out of Scope",
 )
 
+GRILL_ME_SOURCE = "satya-janghu/agent-skills"
+GRILL_ME_SKILL_PATH = "skills/grill-me"
+
+
+def grill_me_install_hint() -> str:
+    """Return the shared remediation for a missing upstream Grill Me skill."""
+
+    return (
+        f"Install {GRILL_ME_SOURCE} at {GRILL_ME_SKILL_PATH} for the upstream `grill-me` "
+        "skill. Read the package README for host-specific installation instructions."
+    )
+
 
 class GrillError(RuntimeError):
     """A Grill staging or attachment operation cannot continue safely."""
@@ -367,7 +379,7 @@ def compatibility_check(
         return _compatibility_failure(
             source,
             f"Installed upstream grill-me skill was not found in {hint}. "
-            "Install satya-janghu/agent-skills or pass --skills-dir.",
+            f"{grill_me_install_hint()} Pass --skills-dir to select another checked location.",
             contract,
         )
 

@@ -11,10 +11,16 @@ does not implement project changes.
 
 ## Delegate to Grill Me
 
-1. Find the installed upstream skill named `grill-me` in the supported user-level skills location.
-2. If the skill is missing, report the missing dependency and stop. Leave existing Grill source material unchanged.
-3. Delegate the requirements session to the upstream `grill-me` skill by using the host skill invocation for `grill-me`.
-4. Wait for the upstream skill to return its distilled result. Do not ask a second set of questions in this adapter.
+The adapter checks the selected Codex user-level skills directory. The default
+directory is `~/.agents/skills`. It looks for the upstream skill at
+`grill-me/SKILL.md`.
+
+1. Find the installed upstream skill named `grill-me` in the selected user-level skills directory.
+2. If `grill-me/SKILL.md` is missing, report the checked directory.
+3. Tell the user to install `skills/grill-me` from `satya-janghu/agent-skills`.
+4. Refer to the package README. Stop and leave existing Grill source material unchanged.
+5. Delegate the requirements session to the upstream `grill-me` skill by using the host skill invocation for `grill-me`.
+6. Wait for the upstream skill to return its distilled result. Do not ask a second set of questions in this adapter.
 
 The upstream skill owns the questions and the session log. This adapter does
 not copy its prompts, question lenses, logging rules, or interrogation logic.

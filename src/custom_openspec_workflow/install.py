@@ -19,7 +19,8 @@ import sys
 import tempfile
 from typing import Any, Iterable, Sequence
 
-from .host import HostLayout, UnsupportedHostError, discover_host
+from .grill import discover_grill_me_skill, grill_me_install_hint
+from .host import HostLayout, UnsupportedHostError, discover_host, executable_in_path
 from .paths import default_cache_root, default_data_root
 
 
@@ -89,6 +90,30 @@ class ExpectedFile:
         return _sha256_bytes(self.data)
 
 
+@dataclass(frozen=True)
+class PrerequisiteResult:
+    """One read-only result for a feature prerequisite."""
+
+    name: str
+    feature: str
+    kind: str
+    status: str
+    checked: str
+    resolved: str | None = None
+    remediation: str = ""
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "name": self.name,
+            "feature": self.feature,
+            "kind": self.kind,
+            "status": self.status,
+            "checked": self.checked,
+            "resolved": self.resolved,
+            "remediation": self.remediation,
+        }
+
+
 @dataclass
 class OperationPlan:
     """A read-only description of an install or uninstall operation."""
@@ -108,6 +133,7 @@ class OperationPlan:
     final_directories: set[Path] = field(default_factory=set)
     manifest_data: dict[str, Any] | None = None
     manifest_trusted: bool = False
+    prerequisites: list[PrerequisiteResult] = field(default_factory=list)
 
     @property
     def is_blocked(self) -> bool:
@@ -131,6 +157,7 @@ class OperationPlan:
             "plan": [entry.to_dict() for entry in self.entries],
             "conflicts": list(self.conflicts),
             "modified": list(self.modified),
+            "prerequisites": [item.to_dict() for item in self.prerequisites],
             "dryRun": dry_run,
             "status": "blocked" if self.is_blocked else "planned",
             "applied": False,
@@ -446,6 +473,38 @@ def _expected_files(
     return result
 
 
+def _collect_prerequisites(layout: HostLayout) -> list[PrerequisiteResult]:
+    """Collect install-only prerequisite results without changing user paths."""
+
+    grill_me = discover_grill_me_skill(layout.skills_dir)
+    grill_result = PrerequisiteResult(
+        name="grill-me",
+        feature="custom-openspec-grill",
+        kind="skill",
+        status="available" if grill_me is not None else "missing",
+        checked=str(layout.skills_dir),
+        resolved=str(grill_me) if grill_me is not None else None,
+        remediation="" if grill_me is not None else grill_me_install_hint(),
+    )
+
+    openspec = executable_in_path("openspec")
+    openspec_result = PrerequisiteResult(
+        name="openspec",
+        feature="custom-openspec-init",
+        kind="executable",
+        status="available" if openspec is not None else "missing",
+        checked="openspec on PATH",
+        resolved=str(openspec) if openspec is not None else None,
+        remediation=(
+            "Install OpenSpec so the default `openspec` command is on PATH, or "
+            "pass an explicit `--openspec-executable` value to `custom-openspec-init`."
+            if openspec is None
+            else ""
+        ),
+    )
+    return [grill_result, openspec_result]
+
+
 def _add_conflict(plan: OperationPlan, path: Path, reason: str, *, kind: str = "file") -> None:
     message = f"{path}: {reason}"
     if message not in plan.conflicts:
@@ -520,6 +579,7 @@ def build_install_plan(
         destination,
         manifest_path,
         expected_files=expected,
+        prerequisites=_collect_prerequisites(layout),
     )
 
     manifest, manifest_error = _read_manifest(
@@ -1101,6 +1161,17 @@ def _print_human_plan(plan: OperationPlan) -> None:
     for entry in plan.entries:
         suffix = f" ({entry.reason})" if entry.reason else ""
         print(f"{entry.operation}: {entry.path}{suffix}")
+    if plan.prerequisites:
+        print("prerequisites:")
+        for prerequisite in plan.prerequisites:
+            print(
+                f"- {prerequisite.name} for {prerequisite.feature}: "
+                f"{prerequisite.status}. Checked {prerequisite.checked}."
+            )
+            if prerequisite.resolved is not None:
+                print(f"  found: {prerequisite.resolved}")
+            if prerequisite.remediation:
+                print(f"  warning: {prerequisite.remediation}")
     if plan.conflicts:
         print("conflicts:")
         for conflict in plan.conflicts:

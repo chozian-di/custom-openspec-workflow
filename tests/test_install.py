@@ -104,6 +104,64 @@ class InstallTests(unittest.TestCase):
             self.assertEqual(payload["binDir"], str(bin_dir))
             self.assertTrue((bin_dir / "custom-openspec-init").is_file())
 
+    def test_install_plan_reports_available_prerequisites_in_selected_skills_dir(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            layout = self.layout(root)
+            upstream = layout["skills_dir"] / "grill-me" / "SKILL.md"
+            upstream.parent.mkdir(parents=True)
+            upstream.write_text(
+                "---\nname: grill-me\n---\nUpstream Grill Me skill.\n",
+                encoding="utf-8",
+            )
+            openspec = root / "openspec"
+
+            with patch(
+                "custom_openspec_workflow.install.executable_in_path",
+                return_value=openspec,
+            ):
+                plan = build_install_plan(**layout, source_root=SOURCE_PACKAGE)
+
+            prerequisites = {item.name: item for item in plan.prerequisites}
+            self.assertEqual(prerequisites["grill-me"].status, "available")
+            self.assertEqual(prerequisites["grill-me"].checked, str(layout["skills_dir"].resolve()))
+            self.assertEqual(prerequisites["grill-me"].resolved, str(upstream.resolve()))
+            self.assertEqual(prerequisites["openspec"].status, "available")
+            self.assertEqual(prerequisites["openspec"].resolved, str(openspec.resolve()))
+            self.assertFalse(plan.conflicts)
+            self.assertNotIn(upstream.resolve(), plan.expected_files)
+            self.assertNotIn(str(upstream.resolve()), plan.manifest_data["files"])
+
+    def test_install_plan_reports_missing_prerequisites_without_writes_or_conflicts(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            layout = self.layout(root)
+
+            with patch(
+                "custom_openspec_workflow.install.executable_in_path",
+                return_value=None,
+            ):
+                plan = build_install_plan(**layout, source_root=SOURCE_PACKAGE)
+
+            prerequisites = {item.name: item for item in plan.prerequisites}
+            grill_me = prerequisites["grill-me"]
+            openspec = prerequisites["openspec"]
+            self.assertEqual(grill_me.status, "missing")
+            self.assertEqual(grill_me.checked, str(layout["skills_dir"].resolve()))
+            self.assertIn("satya-janghu/agent-skills", grill_me.remediation)
+            self.assertIn("skills/grill-me", grill_me.remediation)
+            self.assertIn("README", grill_me.remediation)
+            self.assertEqual(openspec.status, "missing")
+            self.assertEqual(openspec.checked, "openspec on PATH")
+            self.assertIn("--openspec-executable", openspec.remediation)
+            self.assertFalse(plan.conflicts)
+            self.assertFalse(root.joinpath("skills").exists())
+            self.assertFalse(root.joinpath("bin").exists())
+            self.assertFalse(root.joinpath("install").exists())
+            self.assertFalse(
+                any(path.name == "grill-me" for path in plan.expected_files)
+            )
+
     def test_default_install_copies_renamed_package_and_generates_working_wrappers(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -452,19 +510,41 @@ class InstallTests(unittest.TestCase):
     def test_declined_cli_install_displays_plan_before_prompt_and_writes_nothing(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            return_code, stdout, stderr = self.run_cli(
-                self.cli_arguments(root),
-                input_text="n\n",
-                interactive=True,
-            )
+            with patch(
+                "custom_openspec_workflow.install.executable_in_path",
+                return_value=None,
+            ):
+                return_code, stdout, stderr = self.run_cli(
+                    self.cli_arguments(root),
+                    input_text="n\n",
+                    interactive=True,
+                )
 
             self.assertEqual(return_code, 0)
             self.assertEqual(stderr, "")
             self.assertLess(stdout.index("create:"), stdout.index("Apply this install operation?"))
+            self.assertLess(stdout.index("warning:"), stdout.index("Apply this install operation?"))
+            self.assertIn("satya-janghu/agent-skills", stdout)
             self.assertIn("cancelled", stdout)
             self.assertFalse(self.layout(root)["install_dir"].exists())
             self.assertFalse(self.layout(root)["skills_dir"].exists())
             self.assertFalse(self.layout(root)["bin_dir"].exists())
+
+    def test_yes_install_keeps_missing_prerequisite_warning_and_applies(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            with patch(
+                "custom_openspec_workflow.install.executable_in_path",
+                return_value=None,
+            ):
+                return_code, stdout, stderr = self.run_cli(
+                    self.cli_arguments(root, "--yes"),
+                )
+
+            self.assertEqual(return_code, 0, stderr)
+            self.assertIn("warning:", stdout)
+            self.assertIn("completed", stdout)
+            self.assertTrue((self.layout(root)["install_dir"] / "manifest.json").is_file())
 
     def test_declined_cli_uninstall_displays_plan_before_prompt_and_writes_nothing(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -508,9 +588,13 @@ class InstallTests(unittest.TestCase):
     def test_json_cli_emits_plan_before_apply_and_keeps_result_parseable(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            return_code, stdout, stderr = self.run_cli(
-                self.cli_arguments(root, "--json", "--yes"),
-            )
+            with patch(
+                "custom_openspec_workflow.install.executable_in_path",
+                return_value=None,
+            ):
+                return_code, stdout, stderr = self.run_cli(
+                    self.cli_arguments(root, "--json", "--yes"),
+                )
 
             self.assertEqual(return_code, 0, stderr)
             result = json.loads(stdout)
@@ -518,6 +602,18 @@ class InstallTests(unittest.TestCase):
             self.assertEqual(result["status"], "completed")
             self.assertEqual(plan["operation"], "install")
             self.assertEqual(plan["plan"], result["plan"])
+            self.assertEqual(plan["prerequisites"], result["prerequisites"])
+            self.assertEqual(
+                {item["name"] for item in result["prerequisites"]},
+                {"grill-me", "openspec"},
+            )
+            missing = {
+                item["name"]: item
+                for item in result["prerequisites"]
+                if item["status"] == "missing"
+            }
+            self.assertIn("grill-me", missing)
+            self.assertIn("satya-janghu/agent-skills", missing["grill-me"]["remediation"])
             self.assertTrue(result["plan"])
 
     def test_json_cli_confirmation_plan_precedes_prompt_and_cancellation_result(self) -> None:
@@ -538,14 +634,20 @@ class InstallTests(unittest.TestCase):
     def test_json_dry_run_returns_plan_without_writing(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            return_code, stdout, stderr = self.run_cli(
-                self.cli_arguments(root, "--json", "--dry-run"),
-            )
+            with patch(
+                "custom_openspec_workflow.install.executable_in_path",
+                return_value=None,
+            ):
+                return_code, stdout, stderr = self.run_cli(
+                    self.cli_arguments(root, "--json", "--dry-run"),
+                )
 
             self.assertEqual(return_code, 0, stderr)
             result = json.loads(stdout)
             self.assertEqual(result["status"], "dry-run")
             self.assertTrue(result["plan"])
+            self.assertEqual(len(result["prerequisites"]), 2)
+            self.assertTrue(all(item["status"] == "missing" for item in result["prerequisites"]))
             self.assertEqual(stderr, "")
             self.assertFalse(self.layout(root)["install_dir"].exists())
             self.assertFalse(self.layout(root)["skills_dir"].exists())
@@ -589,6 +691,42 @@ class InstallTests(unittest.TestCase):
             self.assertEqual(unrelated.read_text(encoding="utf-8"), "keep me\n")
             self.assertEqual(grill_session.read_text(encoding="utf-8"), "staging data\n")
             self.assertEqual(upstream_skill.read_text(encoding="utf-8"), "upstream skill\n")
+
+    def test_uninstall_skips_missing_prerequisite_checks_and_preserves_upstream_files(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            layout = self.layout(root)
+            with patch(
+                "custom_openspec_workflow.install.executable_in_path",
+                return_value=None,
+            ):
+                self.install(root)
+
+            upstream_skill = layout["skills_dir"] / "grill-me" / "SKILL.md"
+            upstream_skill.parent.mkdir(parents=True)
+            upstream_skill.write_text("upstream skill\n", encoding="utf-8")
+            unrelated = layout["install_dir"] / "user-data.txt"
+            unrelated.write_text("keep me\n", encoding="utf-8")
+
+            with (
+                patch(
+                    "custom_openspec_workflow.install.executable_in_path",
+                    return_value=None,
+                ) as executable_lookup,
+                patch(
+                    "custom_openspec_workflow.install.discover_grill_me_skill",
+                    return_value=None,
+                ) as grill_lookup,
+            ):
+                plan = build_uninstall_plan(**layout)
+                payload = uninstall_user(**layout)
+
+            executable_lookup.assert_not_called()
+            grill_lookup.assert_not_called()
+            self.assertEqual(plan.prerequisites, [])
+            self.assertEqual(payload["prerequisites"], [])
+            self.assertEqual(upstream_skill.read_text(encoding="utf-8"), "upstream skill\n")
+            self.assertEqual(unrelated.read_text(encoding="utf-8"), "keep me\n")
 
     def test_uninstall_preserves_modified_managed_file_and_removes_others(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

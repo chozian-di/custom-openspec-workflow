@@ -164,5 +164,8 @@ class GrillTests(unittest.TestCase):
 
             self.assertFalse(result["passed"])
             self.assertFalse(result["dependencyAvailable"])
+            self.assertIn(str((root / "missing-skills").resolve()), result["failureReason"])
             self.assertIn("Install satya-janghu/agent-skills", result["failureReason"])
+            self.assertIn("skills/grill-me", result["failureReason"])
+            self.assertIn("package README", result["failureReason"])
             self.assertEqual(source.read_bytes(), before)

@@ -201,9 +201,44 @@ User-level uninstall does not reverse repository bootstrap. It does not remove
 source files, `.agents`, `openspec`, or OpenSpec global configuration. Change
 those repository files separately when that cleanup is required.
 
-The upstream Grill Me skill is a prerequisite for Grill sessions. Install it
-from `satya-janghu/agent-skills` with the host method that you use. The package
-does not install or change Grill Me.
+## Install prerequisites
+
+The installer checks known prerequisites when it builds an install plan. These
+checks read the selected skills directory and the command search path. They do
+not install or change a prerequisite.
+
+The checks are advisory. An advisory warning informs you about a missing
+feature dependency. It does not stop a safe package install.
+
+For an install or dry run, the installer checks these prerequisites:
+
+- The selected Codex skills directory for `grill-me/SKILL.md`. The
+  `custom-openspec-grill` feature uses this upstream skill for Grill sessions.
+- The default `openspec` command on `PATH`. The `PATH` setting lists directories
+  that contain commands. The `custom-openspec-init` feature uses this command
+  for repository bootstrap.
+
+If the upstream Grill Me skill is missing, the plan names the checked skills
+directory and reports a warning. Install `skills/grill-me` from
+`satya-janghu/agent-skills` with the host method that you use. Read the
+instructions in this README before you install the skill. The package does not
+install or change Grill Me.
+
+If the default `openspec` command is missing, the plan reports a warning. The
+bootstrap helper accepts an explicit executable path:
+
+```text
+custom-openspec-init . --openspec-executable /path/to/openspec
+```
+
+The plan shows missing prerequisite warnings before a human confirmation
+prompt. A JSON write-mode plan goes to standard error before confirmation or
+apply. The final JSON result goes to standard output. Both JSON objects include
+the `prerequisites` results. A JSON dry run includes the same results in its
+standard output and does not change files.
+
+The installer does not run prerequisite checks during uninstall. Uninstall
+does not remove the upstream `grill-me` skill or other user-owned files.
 
 ## Bootstrap a repository
 

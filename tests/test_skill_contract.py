@@ -12,6 +12,11 @@ class SkillContractTests(unittest.TestCase):
         text = path.read_text(encoding="utf-8")
         self.assertIn("name: custom-openspec-grill", text)
         self.assertIn("upstream `grill-me` skill", text)
+        self.assertIn("~/.agents/skills", text)
+        self.assertIn("grill-me/SKILL.md", text)
+        self.assertIn("satya-janghu/agent-skills", text)
+        self.assertIn("skills/grill-me", text)
+        self.assertIn("package README", text)
         self.assertNotIn("Question lenses", text)
         self.assertNotIn("Core loop", text)
         self.assertNotIn("one question at a time", text)
@@ -35,3 +40,14 @@ class SkillContractTests(unittest.TestCase):
         self.assertFalse(record.startswith("- ["))
         self.assertNotIn("PASSED", record)
         self.assertNotIn("WAIVED BY USER", record)
+
+    def test_readme_documents_advisory_install_prerequisites(self) -> None:
+        root = Path(__file__).parents[1]
+        readme = (root / "README.md").read_text(encoding="utf-8")
+
+        self.assertIn("## Install prerequisites", readme)
+        self.assertIn("grill-me/SKILL.md", readme)
+        self.assertIn("satya-janghu/agent-skills", readme)
+        self.assertIn("custom-openspec-init . --openspec-executable /path/to/openspec", readme)
+        self.assertIn("`prerequisites`", readme)
+        self.assertIn("does not run prerequisite checks during uninstall", readme)
