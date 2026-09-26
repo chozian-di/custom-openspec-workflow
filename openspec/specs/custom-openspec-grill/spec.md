@@ -18,7 +18,7 @@ This capability adds optional requirements interrogation to OpenSpec through the
 #### Scenario: Grill Me is unavailable
 
 - **WHEN** the adapter cannot find the configured upstream Grill Me skill
-- **THEN** it reports the missing dependency, does not perform implementation work, and leaves existing Grill source material unchanged
+- **THEN** it reports the missing dependency, identifies the checked user-level skills location, directs the user to install `skills/grill-me` from `satya-janghu/agent-skills`, references the package README, performs no implementation work, and leaves existing Grill source material unchanged
 
 #### Scenario: Grill is skipped
 
