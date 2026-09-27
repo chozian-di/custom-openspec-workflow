@@ -19,7 +19,14 @@ import sys
 import tempfile
 from typing import Any, Iterable, Sequence
 
-from .grill import discover_grill_me_skill, grill_me_install_hint
+from .grill import (
+    GRILL_ME_VALUE,
+    SIMPLE_ENGLISH_VALUE,
+    discover_grill_me_skill,
+    discover_simple_english_skill,
+    grill_me_install_hint,
+    simple_english_install_hint,
+)
 from .host import HostLayout, UnsupportedHostError, discover_host, executable_in_path
 from .paths import default_cache_root, default_data_root
 
@@ -101,6 +108,7 @@ class PrerequisiteResult:
     checked: str
     resolved: str | None = None
     remediation: str = ""
+    value: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -111,6 +119,7 @@ class PrerequisiteResult:
             "checked": self.checked,
             "resolved": self.resolved,
             "remediation": self.remediation,
+            "value": self.value,
         }
 
 
@@ -485,6 +494,20 @@ def _collect_prerequisites(layout: HostLayout) -> list[PrerequisiteResult]:
         checked=str(layout.skills_dir),
         resolved=str(grill_me) if grill_me is not None else None,
         remediation="" if grill_me is not None else grill_me_install_hint(),
+        value=GRILL_ME_VALUE,
+    )
+    simple_english = discover_simple_english_skill(layout.skills_dir)
+    simple_english_result = PrerequisiteResult(
+        name="simple-english",
+        feature="documentation-writing",
+        kind="skill",
+        status="available" if simple_english is not None else "missing",
+        checked=str(layout.skills_dir),
+        resolved=str(simple_english) if simple_english is not None else None,
+        remediation=(
+            "" if simple_english is not None else simple_english_install_hint()
+        ),
+        value=SIMPLE_ENGLISH_VALUE,
     )
 
     openspec = executable_in_path("openspec")
@@ -502,7 +525,7 @@ def _collect_prerequisites(layout: HostLayout) -> list[PrerequisiteResult]:
             else ""
         ),
     )
-    return [grill_result, openspec_result]
+    return [grill_result, simple_english_result, openspec_result]
 
 
 def _add_conflict(plan: OperationPlan, path: Path, reason: str, *, kind: str = "file") -> None:
@@ -1170,6 +1193,8 @@ def _print_human_plan(plan: OperationPlan) -> None:
             )
             if prerequisite.resolved is not None:
                 print(f"  found: {prerequisite.resolved}")
+            if prerequisite.value:
+                print(f"  value: {prerequisite.value}")
             if prerequisite.remediation:
                 print(f"  warning: {prerequisite.remediation}")
     if plan.conflicts:

@@ -11,6 +11,8 @@ from custom_openspec_workflow.grill import (
     REQUIRED_SECTIONS,
     attach_session,
     compatibility_check,
+    discover_grill_me_skill,
+    discover_simple_english_skill,
     extract_sections,
     render_grill_context,
     stage_source,
@@ -46,6 +48,36 @@ Keep stock OpenSpec.
 
 
 class GrillTests(unittest.TestCase):
+    def test_skill_discovery_supports_direct_nested_missing_and_mismatched_names(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            skills_dir = root / "skills"
+
+            grill = skills_dir / "grill-me" / "SKILL.md"
+            grill.parent.mkdir(parents=True)
+            grill.write_text("---\nname: grill-me\n---\n", encoding="utf-8")
+            simple_english = skills_dir / "vendor" / "simple-english" / "SKILL.md"
+            simple_english.parent.mkdir(parents=True)
+            simple_english.write_text(
+                "---\nname: simple-english\n---\n",
+                encoding="utf-8",
+            )
+
+            self.assertEqual(discover_grill_me_skill(skills_dir), grill.resolve())
+            self.assertEqual(
+                discover_simple_english_skill(skills_dir), simple_english.resolve()
+            )
+            self.assertIsNone(discover_simple_english_skill(root / "missing-skills"))
+
+            mismatched_root = root / "mismatched-skills"
+            mismatched = mismatched_root / "simple-english" / "SKILL.md"
+            mismatched.parent.mkdir(parents=True)
+            mismatched.write_text(
+                "---\nname: another-skill\n---\n",
+                encoding="utf-8",
+            )
+            self.assertIsNone(discover_simple_english_skill(mismatched_root))
+
     def test_semantic_heading_extraction_keeps_unresolved_questions_separate(self) -> None:
         sections = extract_sections(SOURCE)
         self.assertEqual(sections["Intent"], "Create a reusable policy.")

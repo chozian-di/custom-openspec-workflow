@@ -114,6 +114,12 @@ class InstallTests(unittest.TestCase):
                 "---\nname: grill-me\n---\nUpstream Grill Me skill.\n",
                 encoding="utf-8",
             )
+            simple_english = layout["skills_dir"] / "simple-english" / "SKILL.md"
+            simple_english.parent.mkdir(parents=True)
+            simple_english.write_text(
+                "---\nname: simple-english\n---\nUpstream Simple English skill.\n",
+                encoding="utf-8",
+            )
             openspec = root / "openspec"
 
             with patch(
@@ -126,6 +132,11 @@ class InstallTests(unittest.TestCase):
             self.assertEqual(prerequisites["grill-me"].status, "available")
             self.assertEqual(prerequisites["grill-me"].checked, str(layout["skills_dir"].resolve()))
             self.assertEqual(prerequisites["grill-me"].resolved, str(upstream.resolve()))
+            self.assertEqual(prerequisites["grill-me"].value, "surfaces unclear intent, hidden constraints, decisions, tradeoffs, non-goals, and open questions before planning.")
+            self.assertEqual(prerequisites["simple-english"].status, "available")
+            self.assertEqual(prerequisites["simple-english"].checked, str(layout["skills_dir"].resolve()))
+            self.assertEqual(prerequisites["simple-english"].resolved, str(simple_english.resolve()))
+            self.assertEqual(prerequisites["simple-english"].value, "helps write clear documentation with short sentences, active voice, and consistent terms.")
             self.assertEqual(prerequisites["openspec"].status, "available")
             self.assertEqual(prerequisites["openspec"].resolved, str(openspec.resolve()))
             self.assertFalse(plan.conflicts)
@@ -145,12 +156,19 @@ class InstallTests(unittest.TestCase):
 
             prerequisites = {item.name: item for item in plan.prerequisites}
             grill_me = prerequisites["grill-me"]
+            simple_english = prerequisites["simple-english"]
             openspec = prerequisites["openspec"]
             self.assertEqual(grill_me.status, "missing")
             self.assertEqual(grill_me.checked, str(layout["skills_dir"].resolve()))
             self.assertIn("satya-janghu/agent-skills", grill_me.remediation)
             self.assertIn("skills/grill-me", grill_me.remediation)
             self.assertIn("README", grill_me.remediation)
+            self.assertEqual(simple_english.status, "missing")
+            self.assertEqual(simple_english.checked, str(layout["skills_dir"].resolve()))
+            self.assertIn("AminBlg/SimpleEnglish", simple_english.remediation)
+            self.assertIn("skills/simple-english", simple_english.remediation)
+            self.assertIn("README", simple_english.remediation)
+            self.assertEqual(simple_english.value, "helps write clear documentation with short sentences, active voice, and consistent terms.")
             self.assertEqual(openspec.status, "missing")
             self.assertEqual(openspec.checked, "openspec on PATH")
             self.assertIn("--openspec-executable", openspec.remediation)
@@ -525,6 +543,18 @@ class InstallTests(unittest.TestCase):
             self.assertLess(stdout.index("create:"), stdout.index("Apply this install operation?"))
             self.assertLess(stdout.index("warning:"), stdout.index("Apply this install operation?"))
             self.assertIn("satya-janghu/agent-skills", stdout)
+            self.assertIn(
+                "value: surfaces unclear intent, hidden constraints, decisions, tradeoffs, non-goals, and open questions before planning.",
+                stdout,
+            )
+            self.assertIn(
+                "value: helps write clear documentation with short sentences, active voice, and consistent terms.",
+                stdout,
+            )
+            self.assertLess(
+                stdout.index("warning: Install satya-janghu/agent-skills"),
+                stdout.index("warning: Install AminBlg/SimpleEnglish"),
+            )
             self.assertIn("cancelled", stdout)
             self.assertFalse(self.layout(root)["install_dir"].exists())
             self.assertFalse(self.layout(root)["skills_dir"].exists())
@@ -605,7 +635,7 @@ class InstallTests(unittest.TestCase):
             self.assertEqual(plan["prerequisites"], result["prerequisites"])
             self.assertEqual(
                 {item["name"] for item in result["prerequisites"]},
-                {"grill-me", "openspec"},
+                {"grill-me", "simple-english", "openspec"},
             )
             missing = {
                 item["name"]: item
@@ -614,6 +644,15 @@ class InstallTests(unittest.TestCase):
             }
             self.assertIn("grill-me", missing)
             self.assertIn("satya-janghu/agent-skills", missing["grill-me"]["remediation"])
+            self.assertIn("AminBlg/SimpleEnglish", missing["simple-english"]["remediation"])
+            self.assertEqual(
+                missing["simple-english"]["value"],
+                "helps write clear documentation with short sentences, active voice, and consistent terms.",
+            )
+            self.assertEqual(
+                result["prerequisites"][0]["value"],
+                "surfaces unclear intent, hidden constraints, decisions, tradeoffs, non-goals, and open questions before planning.",
+            )
             self.assertTrue(result["plan"])
 
     def test_json_cli_confirmation_plan_precedes_prompt_and_cancellation_result(self) -> None:
@@ -646,12 +685,66 @@ class InstallTests(unittest.TestCase):
             result = json.loads(stdout)
             self.assertEqual(result["status"], "dry-run")
             self.assertTrue(result["plan"])
-            self.assertEqual(len(result["prerequisites"]), 2)
+            self.assertEqual(len(result["prerequisites"]), 3)
             self.assertTrue(all(item["status"] == "missing" for item in result["prerequisites"]))
+            values = {item["name"]: item["value"] for item in result["prerequisites"]}
+            self.assertEqual(
+                values["grill-me"],
+                "surfaces unclear intent, hidden constraints, decisions, tradeoffs, non-goals, and open questions before planning.",
+            )
+            self.assertEqual(
+                values["simple-english"],
+                "helps write clear documentation with short sentences, active voice, and consistent terms.",
+            )
             self.assertEqual(stderr, "")
             self.assertFalse(self.layout(root)["install_dir"].exists())
             self.assertFalse(self.layout(root)["skills_dir"].exists())
             self.assertFalse(self.layout(root)["bin_dir"].exists())
+
+    def test_human_and_json_dry_runs_show_values_for_available_optional_skills(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            layout = self.layout(root)
+            for name in ("grill-me", "simple-english"):
+                skill = layout["skills_dir"] / name / "SKILL.md"
+                skill.parent.mkdir(parents=True, exist_ok=True)
+                skill.write_text(f"---\nname: {name}\n---\n", encoding="utf-8")
+
+            with patch(
+                "custom_openspec_workflow.install.executable_in_path",
+                return_value=root / "openspec",
+            ):
+                return_code, stdout, stderr = self.run_cli(
+                    self.cli_arguments(root, "--dry-run"),
+                )
+            self.assertEqual(return_code, 0, stderr)
+            self.assertIn(
+                "value: surfaces unclear intent, hidden constraints, decisions, tradeoffs, non-goals, and open questions before planning.",
+                stdout,
+            )
+            self.assertIn(
+                "value: helps write clear documentation with short sentences, active voice, and consistent terms.",
+                stdout,
+            )
+            self.assertNotIn("warning: Install satya-janghu/agent-skills", stdout)
+            self.assertNotIn("warning: Install AminBlg/SimpleEnglish", stdout)
+            self.assertEqual(stderr, "")
+
+            with patch(
+                "custom_openspec_workflow.install.executable_in_path",
+                return_value=root / "openspec",
+            ):
+                return_code, stdout, stderr = self.run_cli(
+                    self.cli_arguments(root, "--json", "--dry-run"),
+                )
+            self.assertEqual(return_code, 0, stderr)
+            payload = json.loads(stdout)
+            prerequisites = {item["name"]: item for item in payload["prerequisites"]}
+            self.assertEqual(prerequisites["grill-me"]["status"], "available")
+            self.assertEqual(prerequisites["simple-english"]["status"], "available")
+            self.assertTrue(prerequisites["grill-me"]["value"])
+            self.assertTrue(prerequisites["simple-english"]["value"])
+            self.assertEqual(stderr, "")
 
     def test_noninteractive_cli_requires_explicit_confirmation_bypass(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -717,12 +810,17 @@ class InstallTests(unittest.TestCase):
                     "custom_openspec_workflow.install.discover_grill_me_skill",
                     return_value=None,
                 ) as grill_lookup,
+                patch(
+                    "custom_openspec_workflow.install.discover_simple_english_skill",
+                    return_value=None,
+                ) as simple_english_lookup,
             ):
                 plan = build_uninstall_plan(**layout)
                 payload = uninstall_user(**layout)
 
             executable_lookup.assert_not_called()
             grill_lookup.assert_not_called()
+            simple_english_lookup.assert_not_called()
             self.assertEqual(plan.prerequisites, [])
             self.assertEqual(payload["prerequisites"], [])
             self.assertEqual(upstream_skill.read_text(encoding="utf-8"), "upstream skill\n")

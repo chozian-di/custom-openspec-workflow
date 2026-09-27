@@ -31,6 +31,10 @@ This package owns these parts:
 The upstream Grill Me skill owns its question process. This package does not
 copy or modify that skill.
 
+The upstream Simple English skill owns its writing rules. This package only
+looks for `skills/simple-english/SKILL.md`. It does not copy, install, update,
+or remove that skill.
+
 ## Compatibility baseline
 
 This package uses the published `@fission-ai/openspec` release `1.13.2` as its
@@ -189,7 +193,7 @@ Use `--yes` for a non-interactive uninstall. Uninstall removes only unchanged
 files in the ownership manifest. It preserves modified files and reports each
 preserved path. It also removes empty directories that the installer created.
 It keeps the install root, unrelated files, Grill staging sessions, and the
-upstream `grill-me` skill. It does not remove files from
+upstream `grill-me` and `simple-english` skills. It does not remove files from
 `~/.cache/custom-openspec-workflow` or from a path that you set with
 `PYTHONPYCACHEPREFIX`.
 
@@ -214,6 +218,8 @@ For an install or dry run, the installer checks these prerequisites:
 
 - The selected Codex skills directory for `grill-me/SKILL.md`. The
   `custom-openspec-grill` feature uses this upstream skill for Grill sessions.
+- The selected Codex skills directory for `simple-english/SKILL.md`. This
+  optional skill helps write project documentation.
 - The default `openspec` command on `PATH`. The `PATH` setting lists directories
   that contain commands. The `custom-openspec-init` feature uses this command
   for repository bootstrap.
@@ -223,6 +229,18 @@ directory and reports a warning. Install `skills/grill-me` from
 `satya-janghu/agent-skills` with the host method that you use. Read the
 instructions in this README before you install the skill. The package does not
 install or change Grill Me.
+
+If the upstream Simple English skill is missing, the plan names the checked
+skills directory and reports a warning. Install only the `skills/simple-english`
+skill from `AminBlg/SimpleEnglish` with the skills CLI:
+
+```text
+npx skills add AminBlg/SimpleEnglish
+```
+
+This command installs the skill only. It does not install the upstream session
+hook or output style. The package does not install, update, or remove Simple English.
+It only reports whether `simple-english/SKILL.md` is available.
 
 If the default `openspec` command is missing, the plan reports a warning. The
 bootstrap helper accepts an explicit executable path:
@@ -238,7 +256,8 @@ the `prerequisites` results. A JSON dry run includes the same results in its
 standard output and does not change files.
 
 The installer does not run prerequisite checks during uninstall. Uninstall
-does not remove the upstream `grill-me` skill or other user-owned files.
+does not remove the upstream `grill-me` or `simple-english` skills or other
+user-owned files.
 
 ## Bootstrap a repository
 
@@ -297,6 +316,12 @@ Run `custom-openspec-grill` when important requirements remain unresolved. Use
 it for unclear intent, hidden constraints, important decisions, tradeoffs, UX
 concerns, security concerns, or other requirements that need deeper discussion.
 
+Grill Me surfaces unclear intent, hidden constraints, decisions, tradeoffs,
+non-goals, and open questions before planning. It gives the planning process a
+clear record of what the user needs, what the repository must preserve, and
+what remains unresolved. Use it when normal Explore does not resolve an
+important requirement.
+
 Grill-first is also available for a change with high uncertainty. Run Grill Me,
 keep the pending handoff, use Explore to test the captured decisions against
 the repository, and then use Propose.
@@ -304,6 +329,19 @@ the repository, and then use Propose.
 The adapter delegates the question process to the installed upstream
 `grill-me` skill. It does not ask its own question series. It does not perform
 implementation work.
+
+## Use Simple English for documentation
+
+Simple English helps write clear documentation with short sentences, active
+voice, and consistent terms. It applies plain language to READMEs, runbooks,
+procedures, error messages, release notes, API guides, and other text for
+readers outside the field. It also defines technical terms before it uses them
+and keeps instructions in a clear order.
+
+Simple English is optional. Use it when a document needs a plain style or when
+readers do not share the writer's technical background. This package reports
+the skill as an advisory prerequisite. It does not add Simple English rules to
+OpenSpec configuration and does not install optional upstream plugin features.
 
 ### Recommended planning order
 

@@ -148,6 +148,36 @@ class SkillContractTests(unittest.TestCase):
         self.assertIn("## Install prerequisites", readme)
         self.assertIn("grill-me/SKILL.md", readme)
         self.assertIn("satya-janghu/agent-skills", readme)
+        self.assertIn("simple-english/SKILL.md", readme)
+        self.assertIn("AminBlg/SimpleEnglish", readme)
+        self.assertIn("npx skills add AminBlg/SimpleEnglish", readme)
+        self.assertIn(
+            "Grill Me surfaces unclear intent, hidden constraints, decisions, tradeoffs,",
+            readme,
+        )
+        self.assertIn(
+            "Simple English helps write clear documentation with short sentences, active",
+            readme,
+        )
+        self.assertIn("does not install, update, or remove Simple English", readme)
         self.assertIn("custom-openspec-init . --openspec-executable /path/to/openspec", readme)
         self.assertIn("`prerequisites`", readme)
         self.assertIn("does not run prerequisite checks during uninstall", readme)
+
+    def test_compatibility_baseline_records_simple_english_metadata_and_contract(self) -> None:
+        root = Path(__file__).parents[1]
+        baseline = (root / "docs" / "compatibility-baseline.md").read_text(encoding="utf-8")
+        fixture = (root / "tests" / "fixtures" / "upstream-skills" / "simple-english" / "SKILL.md").read_text(encoding="utf-8")
+        metadata = yaml.safe_load(fixture.split("---", 2)[1])
+
+        self.assertEqual(metadata["name"], "simple-english")
+        self.assertEqual(metadata["metadata"]["version"], "2.1.0")
+        self.assertIn("AminBlg/SimpleEnglish", baseline)
+        self.assertIn("skills/simple-english/SKILL.md", baseline)
+        self.assertIn("79b590fc8596523d92c26b1ea7e33236606ef069", baseline)
+        self.assertIn(
+            f"- Observed skill version: `{metadata['metadata']['version']}`",
+            baseline,
+        )
+        self.assertIn("It reads `<skills-dir>/simple-english/SKILL.md` first.", baseline)
+        self.assertIn("when the declared name does not match", baseline)

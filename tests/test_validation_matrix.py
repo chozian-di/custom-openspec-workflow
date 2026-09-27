@@ -32,6 +32,55 @@ def run_script(
 
 
 class ValidationMatrixTests(unittest.TestCase):
+    def test_disposable_install_matrix_discovers_simple_english_without_modifying_fixture(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            skills_dir = FIXTURES / "upstream-skills"
+            upstream_files = {
+                path: path.read_bytes()
+                for path in skills_dir.rglob("*")
+                if path.is_file()
+            }
+            environment = os.environ.copy()
+            environment["HOME"] = str(root / "home")
+            environment["PYTHONPYCACHEPREFIX"] = str(root / "cache")
+
+            result = run_script(
+                "custom-openspec-install",
+                "--source-root",
+                str(PROJECT_ROOT / "src" / "custom_openspec_workflow"),
+                "--skills-dir",
+                str(skills_dir),
+                "--bin-dir",
+                str(root / "bin"),
+                "--install-dir",
+                str(root / "install"),
+                "--json",
+                "--dry-run",
+                environment=environment,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            payload = json.loads(result.stdout)
+            prerequisites = {item["name"]: item for item in payload["prerequisites"]}
+            self.assertEqual(prerequisites["grill-me"]["status"], "available")
+            self.assertEqual(prerequisites["simple-english"]["status"], "available")
+            self.assertEqual(
+                prerequisites["simple-english"]["resolved"],
+                str((skills_dir / "simple-english" / "SKILL.md").resolve()),
+            )
+            self.assertFalse(
+                any(
+                    entry["path"]
+                    == str((skills_dir / "simple-english" / "SKILL.md").resolve())
+                    for entry in payload["plan"]
+                )
+            )
+            self.assertEqual(
+                {path: path.read_bytes() for path in upstream_files},
+                upstream_files,
+            )
+
     def test_repository_launchers_use_disposable_cache_roots(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

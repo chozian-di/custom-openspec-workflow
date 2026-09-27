@@ -26,6 +26,17 @@ REQUIRED_SECTIONS = (
 
 GRILL_ME_SOURCE = "satya-janghu/agent-skills"
 GRILL_ME_SKILL_PATH = "skills/grill-me"
+GRILL_ME_VALUE = (
+    "surfaces unclear intent, hidden constraints, decisions, tradeoffs, "
+    "non-goals, and open questions before planning."
+)
+
+SIMPLE_ENGLISH_SOURCE = "AminBlg/SimpleEnglish"
+SIMPLE_ENGLISH_SKILL_PATH = "skills/simple-english"
+SIMPLE_ENGLISH_VALUE = (
+    "helps write clear documentation with short sentences, active voice, "
+    "and consistent terms."
+)
 
 
 def grill_me_install_hint() -> str:
@@ -34,6 +45,16 @@ def grill_me_install_hint() -> str:
     return (
         f"Install {GRILL_ME_SOURCE} at {GRILL_ME_SKILL_PATH} for the upstream `grill-me` "
         "skill. Read the package README for host-specific installation instructions."
+    )
+
+
+def simple_english_install_hint() -> str:
+    """Return the shared remediation for a missing Simple English skill."""
+
+    return (
+        f"Install {SIMPLE_ENGLISH_SOURCE} at {SIMPLE_ENGLISH_SKILL_PATH} for the optional "
+        "`simple-english` skill. Read the package README for host-specific installation "
+        "instructions."
     )
 
 
@@ -51,8 +72,8 @@ def _skill_name(path: Path, content: str | None = None) -> str:
     return name.group(1).strip("'\"") if name else path.parent.name
 
 
-def discover_grill_me_skill(skills_dir: Path | None = None) -> Path | None:
-    """Find the installed upstream Grill Me skill for the supported host."""
+def _discover_skill(skill_name: str, skills_dir: Path | None = None) -> Path | None:
+    """Find a named skill in the selected user-level skills directory."""
 
     if skills_dir is not None:
         roots = [skills_dir.expanduser().resolve()]
@@ -64,14 +85,14 @@ def discover_grill_me_skill(skills_dir: Path | None = None) -> Path | None:
 
     candidates: list[Path] = []
     for root in roots:
-        direct = root / "grill-me" / "SKILL.md"
+        direct = root / skill_name / "SKILL.md"
         if direct.is_file():
             candidates.append(direct)
         if root.is_dir():
             candidates.extend(
                 path
                 for path in root.rglob("SKILL.md")
-                if path.parent.name == "grill-me"
+                if path.parent.name == skill_name
             )
 
     seen: set[Path] = set()
@@ -84,9 +105,21 @@ def discover_grill_me_skill(skills_dir: Path | None = None) -> Path | None:
             content = candidate.read_text(encoding="utf-8")
         except OSError:
             continue
-        if _skill_name(candidate, content) == "grill-me":
+        if _skill_name(candidate, content) == skill_name:
             return candidate
     return None
+
+
+def discover_grill_me_skill(skills_dir: Path | None = None) -> Path | None:
+    """Find the installed upstream Grill Me skill for the supported host."""
+
+    return _discover_skill("grill-me", skills_dir)
+
+
+def discover_simple_english_skill(skills_dir: Path | None = None) -> Path | None:
+    """Find the installed upstream Simple English skill for the supported host."""
+
+    return _discover_skill("simple-english", skills_dir)
 
 
 @dataclass(frozen=True)

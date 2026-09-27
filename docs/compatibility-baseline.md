@@ -72,6 +72,7 @@ the implementation boundary for this change.
 | Run setup across repositories | Thin bootstrap | Fits | The bootstrap can invoke normal `openspec init`, merge YAML, select the profile, and run `openspec update`. |
 | Preserve existing project files | Bootstrap preflight and rollback | Fits as custom support | The helper owns only its policy and profile changes. It does not replace generated files or project rules. |
 | Add optional Grill Me discovery | Thin adapter skill | Fits as custom support | The adapter can delegate to the installed `grill-me` skill and consume its distilled result. |
+| Add optional Simple English discovery | Codex user-level skill | Fits as custom support | The installer can discover `skills/simple-english/SKILL.md` without copying or owning the upstream file. |
 | Stage Grill output before a change | Non-root staging metadata | Fits as custom support | The adapter can preserve `.grill` source and add an identity record outside the OpenSpec artifact graph. |
 | Attach Grill output to a change | Change-local `grill.md` | Fits as custom support | The file remains supplemental context and is not added to the schema. |
 | Require applicable Human UAT | Guidance and normal task checkboxes | Fits as advisory policy | OpenSpec tracks checkboxes. The user must provide the pass or waiver record. Guidance cannot self-accept UAT. |
@@ -107,6 +108,30 @@ The adapter does not copy the upstream question loop, prompts, lens list,
 logging prose, or exact file slug rules. The adapter does no implementation
 work. If the dependency is missing, the adapter reports the missing skill and
 leaves source material unchanged.
+
+## Simple English dependency contract
+
+The upstream dependency observed on 2026-09-27 is:
+
+- Repository: `AminBlg/SimpleEnglish`
+- Skill path: `skills/simple-english/SKILL.md`
+- Observed source commit: `79b590fc8596523d92c26b1ea7e33236606ef069`
+- Observed skill version: `2.1.0`
+- Skill name: `simple-english`
+
+The installer uses this name-discovery contract:
+
+1. It reads `<skills-dir>/simple-english/SKILL.md` first.
+2. It supports a nested `simple-english/SKILL.md` path under the selected
+   skills directory.
+3. It reads the `name` field in the skill front matter.
+4. It reports the skill as missing when the declared name does not match
+   `simple-english`.
+5. It reports the result as an advisory prerequisite. It does not copy,
+   update, own, or remove the upstream file.
+
+The installer does not inspect the upstream plugin, hook, or output style. It
+uses the standalone skill file only.
 
 ## Host discovery
 
