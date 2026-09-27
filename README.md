@@ -289,14 +289,145 @@ or a replacement OpenSpec command.
 
 ## Use Grill Me when it helps
 
-Grill is optional. Use normal Explore or Propose for a trivial or already
-specified change. Use `custom-openspec-grill` when the change has unclear
-intent, hidden constraints, important decisions, tradeoffs, UX concerns,
-security concerns, or other requirements that need deeper discussion.
+Explore discussion and repository investigation are the normal first steps.
+Grill is optional. Continue to Propose without Grill Me when Explore provides
+enough clarity.
+
+Run `custom-openspec-grill` when important requirements remain unresolved. Use
+it for unclear intent, hidden constraints, important decisions, tradeoffs, UX
+concerns, security concerns, or other requirements that need deeper discussion.
+
+Grill-first is also available for a change with high uncertainty. Run Grill Me,
+keep the pending handoff, use Explore to test the captured decisions against
+the repository, and then use Propose.
 
 The adapter delegates the question process to the installed upstream
 `grill-me` skill. It does not ask its own question series. It does not perform
 implementation work.
+
+### Recommended planning order
+
+Use this order for a normal change:
+
+1. Run `/opsx:explore` for discussion and repository investigation.
+2. If important requirements remain unresolved, run `custom-openspec-grill`.
+3. Use `/opsx:propose` as the normal writer of the initial planning artifacts.
+4. After Propose creates the named change, attach the pending session before the initial artifacts are written.
+5. Continue with normal OpenSpec planning and implementation.
+
+OpenSpec 1.13.2 does not provide a supported Explore guidance field. This
+package cannot block native Explore from creating or updating planning
+artifacts after the user explicitly confirms those writes. If Explore writes an
+artifact before Grill runs, do not claim that it used Grill context. Do not
+rewrite that artifact automatically after attachment. Use OpenSpec Update when
+the user wants to reconcile the artifact with the attached context.
+
+### Check the `.grill/` ignore rule
+
+Before you invoke Grill Me or use a source under the repository's `.grill/`
+directory, run:
+
+```text
+git -C <repository> check-ignore -q -- .grill/
+```
+
+If the command does not confirm that `.grill/` is ignored, stop. Tell the user
+to add `.grill/` to `<repository>/.gitignore`. The skill does not edit
+`.gitignore`, invoke Grill Me, stage a source, or attach a session when this
+preflight fails.
+
+### Grill before a change exists
+
+After the upstream session returns, use its exact source path. Do not rebuild a
+path from a generated filename slug. Do not choose a source only because it
+has the newest timestamp.
+
+If the upstream result has no exact source path, use source discovery only when
+exactly one plausible source exists. If more than one plausible source exists,
+ask the user to select the source. Do not stage a source before the selection.
+
+After source selection, stage the source through the AI session:
+
+```text
+custom-openspec-grill stage \
+  --source <exact-source-path> \
+  --json
+```
+
+The JSON result includes a stable `sessionId`, the exact `sourcePath`, and the
+`stagingDir`. Keep those values and the repository root as a pending handoff in
+the active AI session. Keep the handoff until attachment or until the user
+chooses not to continue.
+
+The command copies the source outside the repository. The default staging path
+is:
+
+```text
+~/.local/share/custom-openspec-workflow/grill/sessions/<session-id>/
+```
+
+Set `CUSTOM_OPENSPEC_WORKFLOW_GRILL_HOME` when you need another user-level
+staging path. The source file in `.grill` is a read-only snapshot. Do not edit
+or delete it.
+
+### Attach Grill to a named change
+
+When a named change exists, attach the pending session before the next planning
+artifact that uses Grill context. In the recommended Propose flow, attach
+after Propose creates the named change and before Propose writes `proposal.md`
+or another initial planning artifact:
+
+```text
+custom-openspec-grill attach \
+  --root <repository> \
+  --change <change-name> \
+  --session <session-id> \
+  --json
+```
+
+If exactly one applicable named change exists, select it automatically.
+When more than one applicable named change exists, ask the user to select the change.
+Never attach to an arbitrary change.
+
+The command writes `openspec/changes/<change-name>/grill.md`. The file records
+the source session, source path, source hash, capture time, and upstream skill.
+It is a read-only snapshot. Record later decisions in the normal OpenSpec
+artifacts. The latest explicit user decision takes precedence over a
+conflicting Grill summary or snapshot.
+
+If the change already has `grill.md` for another session, preserve the existing
+context and ask the user whether to replace or combine it. Use `--replace` or
+`--combine` only after the user chooses that action. Attaching the same session
+again is idempotent and reports the existing attachment.
+
+### Recovery and retention
+
+If the active AI session ends after staging, use the recorded handoff to run
+the attach command again. Include `--staging-dir <staging-root>` when the
+session used a custom staging path. The source and session metadata remain
+available until the user removes them.
+
+Native Archive moves the complete named change, including `grill.md`, to:
+
+```text
+openspec/changes/archive/<date>-<change>/grill.md
+```
+
+Archive leaves the source under `.grill/` and the user-level staged session
+under `~/.local/share/custom-openspec-workflow/grill/sessions/<session-id>/`.
+Cleanup of these external files is a manual user action.
+
+After you update this package, run the installer to deploy the updated
+`custom-openspec-grill/SKILL.md` to the user-level skills directory:
+
+```text
+./scripts/custom-openspec-install \
+  --host codex \
+  --source-root src/custom_openspec_workflow \
+  --skills-dir ~/.agents/skills \
+  --bin-dir ~/.local/bin \
+  --yes
+```
 
 After the upstream session returns its distilled result, the adapter keeps
 these sections in `grill.md`:
@@ -312,46 +443,6 @@ Resolved decisions stay in Decisions. Unresolved items stay in Open Questions.
 The attached file is supplemental planning context. It is not a schema
 artifact.
 
-### Grill before a change exists
-
-The upstream skill writes source material in `.grill`. Stage that source in a
-user-level location before a named OpenSpec change exists:
-
-```text
-custom-openspec-grill stage --source .grill/<source-file>.md
-```
-
-The command copies the source outside the repository and reports a stable
-session identity. The identity includes the source content and path. It does
-not depend only on the generated filename slug.
-
-The default staging path is:
-
-```text
-~/.local/share/custom-openspec-workflow/grill/sessions/<session-id>/
-```
-
-Set `CUSTOM_OPENSPEC_WORKFLOW_GRILL_HOME` when you need another user-level
-staging path. The source file in `.grill` remains unchanged.
-
-### Attach Grill to a named change
-
-After Propose creates a named change, attach the staged session:
-
-```text
-custom-openspec-grill attach \
-  --change add-example \
-  --session <session-id>
-```
-
-The command writes `openspec/changes/add-example/grill.md`. The file records the
-source session, source path, source hash, capture time, and upstream skill.
-
-If the change already has `grill.md`, the command stops and requests a user
-choice. Use `--replace` or `--combine` only after the user chooses that action.
-Attaching the same session again is idempotent and reports the existing
-attachment.
-
 ## Lifecycle
 
 The normal lifecycle is:
@@ -360,16 +451,16 @@ The normal lifecycle is:
 Idea or problem
       |
       v
-custom-openspec-grill, optional
+ /opsx:explore, discussion and repository investigation
       |
-      v
-grill.md, supplemental context
+      +--> requirements clear, /opsx:propose
       |
-      v
-/opsx:explore, optional
+      +--> requirements unresolved, custom-openspec-grill
+                                      |
+                                      v
+                         pending handoff, then /opsx:propose
       |
-      v
-/opsx:propose
+      +--> Grill-first for high uncertainty, then Explore and Propose
       |
       v
 /opsx:apply

@@ -1,17 +1,31 @@
 rules:
   proposal:
     - "Read the current repository context and any change-local grill.md before you write this artifact."
+    - "Before a normal planning artifact uses Grill context, complete any pending Grill handoff and attach it to the named change."
+    - "Treat attached Grill context as supplemental planning input and keep normal OpenSpec artifacts authoritative."
     - "Keep confirmed intent, constraints, decisions, resolved assumptions, open questions, and non-goals aligned with the proposal."
     - "Keep unresolved questions in Open Questions. Do not present them as resolved decisions."
+    - "The latest explicit user decision takes precedence over a conflicting Grill summary or snapshot. Record the active decision in the normal OpenSpec artifact and do not rewrite either snapshot."
+    - "OpenSpec 1.13.2 does not support Explore guidance, so this policy cannot prevent native Explore artifact writes after explicit user confirmation."
   specs:
     - "Read the current repository context and any change-local grill.md before you write this artifact."
+    - "Before a normal planning artifact uses Grill context, complete any pending Grill handoff and attach it to the named change."
+    - "Treat attached Grill context as supplemental planning input and keep normal OpenSpec artifacts authoritative."
     - "Write observable requirements and scenarios. Keep the stock spec-driven artifact shape."
     - "Preserve confirmed decisions and non-goals from grill.md as supplemental planning input."
+    - "The latest explicit user decision takes precedence over a conflicting Grill summary or snapshot. Record the active decision in the normal OpenSpec artifact and do not rewrite either snapshot."
+    - "OpenSpec 1.13.2 does not support Explore guidance, so this policy cannot prevent native Explore artifact writes after explicit user confirmation."
   design:
     - "Read the current repository context, relevant source, and any change-local grill.md before you write this artifact."
+    - "Before a normal planning artifact uses Grill context, complete any pending Grill handoff and attach it to the named change."
+    - "Treat attached Grill context as supplemental planning input and keep normal OpenSpec artifacts authoritative."
     - "Resolve design questions that change the requirements, approach, or task breakdown before implementation."
     - "Keep implementation choices consistent with confirmed Grill decisions and the stock spec-driven boundary."
+    - "The latest explicit user decision takes precedence over a conflicting Grill summary or snapshot. Record the active decision in the normal OpenSpec artifact and do not rewrite either snapshot."
+    - "OpenSpec 1.13.2 does not support Explore guidance, so this policy cannot prevent native Explore artifact writes after explicit user confirmation."
   tasks:
+    - "Before a normal planning artifact uses Grill context, complete any pending Grill handoff and attach it to the named change."
+    - "Treat attached Grill context as supplemental planning input and keep normal OpenSpec artifacts authoritative."
     - "Use the stock tasks.md format and group work into coherent implementation areas."
     - "Order tasks by useful dependencies. Do not add scheduler waves, worker assignments, token estimates, mutex data, agent IDs, or parallel-safety labels."
     - "When changed behavior is reasonably unit-testable, add or update a suitable unit test. Test-Driven Development is not required. Implementation can come before tests."
@@ -20,6 +34,8 @@ rules:
     - "Keep applicable Human UAT as independent normal task checkboxes. Record user disposition as HUMAN UAT - PASSED or HUMAN UAT - WAIVED BY USER."
     - "Do not self-pass UAT or infer a waiver. Reopen only UAT scenarios that a later substantive change can affect."
     - "Keep Verify as a workflow review. Do not add verification.md or a Verify checkbox to tasks.md."
+    - "The latest explicit user decision takes precedence over a conflicting Grill summary or snapshot. Record the active decision in the normal OpenSpec artifact and do not rewrite either snapshot."
+    - "OpenSpec 1.13.2 does not support Explore guidance, so this policy cannot prevent native Explore artifact writes after explicit user confirmation."
 
 operations:
   apply:

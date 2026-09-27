@@ -3,13 +3,20 @@ from __future__ import annotations
 from pathlib import Path
 import unittest
 
+import yaml
+
 from custom_openspec_workflow.host import UnsupportedHostError, discover_host
 
 
 class SkillContractTests(unittest.TestCase):
+    def package_file(self, relative_path: str) -> str:
+        root = Path(__file__).parents[1]
+        return (root / "src" / "custom_openspec_workflow" / "data" / relative_path).read_text(
+            encoding="utf-8"
+        )
+
     def test_adapter_delegates_without_copying_question_logic(self) -> None:
-        path = Path(__file__).parents[1] / "src" / "custom_openspec_workflow" / "data" / "custom-openspec-grill" / "SKILL.md"
-        text = path.read_text(encoding="utf-8")
+        text = self.package_file("custom-openspec-grill/SKILL.md")
         self.assertIn("name: custom-openspec-grill", text)
         self.assertIn("upstream `grill-me` skill", text)
         self.assertIn("~/.agents/skills", text)
@@ -21,6 +28,99 @@ class SkillContractTests(unittest.TestCase):
         self.assertNotIn("Core loop", text)
         self.assertNotIn("one question at a time", text)
         self.assertNotIn("relentlessly", text)
+
+    def test_skill_preflights_sources_and_preserves_read_only_snapshots(self) -> None:
+        text = self.package_file("custom-openspec-grill/SKILL.md")
+
+        self.assertIn("git -C <repository> check-ignore -q -- .grill/", text)
+        self.assertIn("add `.grill/` to `<repository>/.gitignore`", text)
+        self.assertIn("Do not edit `.gitignore`", text)
+        self.assertIn("Do not invoke Grill Me, stage a source, or attach a session", text)
+        self.assertIn("read-only snapshot", text)
+        self.assertIn("Do not edit or delete the source", text)
+        self.assertLess(text.index("check-ignore -q"), text.index("## Delegate to Grill Me"))
+
+    def test_skill_stages_exact_source_and_retains_pending_handoff(self) -> None:
+        text = self.package_file("custom-openspec-grill/SKILL.md")
+
+        self.assertIn("use the exact source path in its result", text)
+        self.assertIn("generated filename slug", text)
+        self.assertIn("newest timestamp", text)
+        self.assertIn("exact-source-path", text)
+        self.assertIn(
+            "custom-openspec-grill stage " + "\\\n" + "  --source <exact-source-path> " + "\\\n" + "  --json",
+            text,
+        )
+        self.assertIn("sourcePath", text)
+        self.assertIn("sessionId", text)
+        self.assertIn("stagingDir", text)
+        self.assertIn("pending handoff", text)
+        self.assertIn("exactly one plausible source", text)
+        self.assertIn("more than one plausible source", text)
+        self.assertIn("ask the user to select the source", text)
+        self.assertLess(text.index("use the exact source path"), text.index("custom-openspec-grill stage"))
+
+    def test_skill_attaches_before_propose_and_handles_conflicts(self) -> None:
+        text = self.package_file("custom-openspec-grill/SKILL.md")
+
+        self.assertIn("--root <repository>", text)
+        self.assertIn("--change <change-name>", text)
+        self.assertIn("--session <session-id>", text)
+        self.assertIn("If exactly one applicable named change exists, select it automatically", text)
+        self.assertIn("more than one applicable named change exists", text)
+        self.assertIn("Do not pass `--replace` or `--combine`", text)
+        self.assertIn("before Propose writes", text)
+        self.assertIn("same session is already complete", text)
+        self.assertIn("latest explicit user decision takes precedence", text)
+
+    def test_skill_documents_the_recommended_order_and_native_explore_limit(self) -> None:
+        text = self.package_file("custom-openspec-grill/SKILL.md")
+
+        self.assertIn("Use OpenSpec Explore for discussion and repository investigation", text)
+        self.assertIn("Grill Me is optional", text)
+        self.assertIn("normal writer of the initial planning artifacts", text)
+        self.assertIn("high uncertainty", text)
+        self.assertIn("cannot block native Explore", text)
+        self.assertIn("Do not rewrite that artifact automatically", text)
+        self.assertIn("The user can use OpenSpec Update", text)
+
+    def test_policy_preserves_supported_operations_and_excludes_explore_guidance(self) -> None:
+        policy_text = self.package_file("openspec-policy.yaml")
+        policy = yaml.safe_load(policy_text)
+
+        self.assertIn("proposal", policy["rules"])
+        self.assertIn("specs", policy["rules"])
+        self.assertIn("design", policy["rules"])
+        self.assertIn("tasks", policy["rules"])
+        for artifact_id in ("proposal", "specs", "design", "tasks"):
+            guidance = "\n".join(policy["rules"][artifact_id])
+            self.assertIn("complete any pending Grill handoff", guidance)
+            self.assertIn("supplemental planning input", guidance)
+            self.assertIn("latest explicit user decision takes precedence", guidance)
+            self.assertIn("cannot prevent native Explore artifact writes", guidance)
+        self.assertIn("apply", policy["operations"])
+        self.assertIn("archive", policy["operations"])
+        self.assertNotIn("explore", policy["operations"])
+
+    def test_readme_documents_the_grill_handoff_and_retention_rules(self) -> None:
+        root = Path(__file__).parents[1]
+        readme = (root / "README.md").read_text(encoding="utf-8")
+
+        for phrase in (
+            "Explore discussion",
+            "Grill-first",
+            "high uncertainty",
+            "pending handoff",
+            "exact source path",
+            "more than one plausible source",
+            "more than one applicable named change",
+            "read-only snapshot",
+            "latest explicit user decision",
+            "openspec/changes/archive/<date>-<change>/grill.md",
+            "manual user action",
+            "./scripts/custom-openspec-install",
+        ):
+            self.assertIn(phrase, readme)
 
     def test_unsupported_host_is_not_guessed(self) -> None:
         with self.assertRaises(UnsupportedHostError):

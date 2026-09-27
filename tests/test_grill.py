@@ -63,6 +63,9 @@ class GrillTests(unittest.TestCase):
             session = stage_source(source, staging)
             self.assertTrue(session.staged_source.is_file())
             self.assertNotEqual(session.staged_source.parent, source.parent)
+            repeated_session = stage_source(source, staging)
+            self.assertEqual(repeated_session.session_id, session.session_id)
+            self.assertEqual(repeated_session.source_path, session.source_path)
 
             change = root / "openspec" / "changes" / "add-policy"
             change.mkdir(parents=True)
