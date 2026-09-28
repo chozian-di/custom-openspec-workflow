@@ -11,7 +11,7 @@ import subprocess
 import sys
 from typing import Any, Sequence
 
-from . import CORE_WORKFLOWS, SUPPORTED_SCHEMA, VERIFY_WORKFLOW
+from . import CORE_WORKFLOWS, PROJECT_IDENTITY, SUPPORTED_SCHEMA, VERIFY_WORKFLOW
 from .paths import policy_path
 from .yaml_config import (
     ConfigurationError,
@@ -393,7 +393,7 @@ def _print_result(result: BootstrapResult, as_json: bool) -> None:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="custom-openspec-init",
-        description="Add the user-level policy to a stock OpenSpec repository.",
+        description=f"Add the user-level policy for {PROJECT_IDENTITY} to a stock OpenSpec repository.",
     )
     parser.add_argument("path", nargs="?", default=".", help="Repository path")
     parser.add_argument("--tools", default="codex", help="Tools passed to openspec init")

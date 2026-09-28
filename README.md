@@ -1,5 +1,8 @@
 # Custom OpenSpec workflow
 
+The official project name is `custom-openspec-workflow`. Its short name is
+`COW`, and it is also known as "chozian's OpenSpec Workflow".
+
 This package adds a user-level policy to stock OpenSpec. It targets brownfield
 software work in an existing repository.
 

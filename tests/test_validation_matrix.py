@@ -9,6 +9,11 @@ import tempfile
 import unittest
 
 from custom_openspec_workflow.grill import REQUIRED_SECTIONS
+from custom_openspec_workflow import (
+    PACKAGE_NAME,
+    PROJECT_ALTERNATE_NAME,
+    PROJECT_SHORT_NAME,
+)
 
 
 PROJECT_ROOT = Path(__file__).parents[1]
@@ -96,6 +101,8 @@ class ValidationMatrixTests(unittest.TestCase):
             ):
                 result = run_script(script, "--help", environment=environment)
                 self.assertEqual(result.returncode, 0, result.stderr)
+                for phrase in (PACKAGE_NAME, PROJECT_SHORT_NAME, PROJECT_ALTERNATE_NAME):
+                    self.assertIn(phrase, result.stdout)
 
             default_cache = home / ".cache" / "custom-openspec-workflow"
             self.assertTrue(list(default_cache.rglob("*.pyc")))
@@ -109,6 +116,8 @@ class ValidationMatrixTests(unittest.TestCase):
             ):
                 result = run_script(script, "--help", environment=environment)
                 self.assertEqual(result.returncode, 0, result.stderr)
+                for phrase in (PACKAGE_NAME, PROJECT_SHORT_NAME, PROJECT_ALTERNATE_NAME):
+                    self.assertIn(phrase, result.stdout)
 
             self.assertTrue(list(explicit_cache.rglob("*.pyc")))
 

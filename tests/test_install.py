@@ -12,6 +12,12 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
+from custom_openspec_workflow import (
+    PACKAGE_NAME,
+    PROJECT_ALTERNATE_NAME,
+    PROJECT_IDENTITY,
+    PROJECT_SHORT_NAME,
+)
 from custom_openspec_workflow.install import (
     InstallConflictError,
     build_install_plan,
@@ -559,6 +565,48 @@ class InstallTests(unittest.TestCase):
             self.assertFalse(self.layout(root)["install_dir"].exists())
             self.assertFalse(self.layout(root)["skills_dir"].exists())
             self.assertFalse(self.layout(root)["bin_dir"].exists())
+
+    def test_human_plan_result_and_refusal_show_project_identity(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            return_code, stdout, stderr = self.run_cli(
+                self.cli_arguments(root, "--dry-run"),
+            )
+
+            self.assertEqual(return_code, 0, stderr)
+            for phrase in (PACKAGE_NAME, PROJECT_SHORT_NAME, PROJECT_ALTERNATE_NAME):
+                self.assertIn(phrase, stdout)
+
+            return_code, stdout, stderr = self.run_cli(
+                self.cli_arguments(root, "--host", "claude", "--dry-run"),
+            )
+
+            self.assertEqual(return_code, 2)
+            self.assertEqual(stdout, "")
+            self.assertIn(PROJECT_IDENTITY, stderr)
+
+    def test_json_plan_and_result_keep_human_branding_out(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            with patch(
+                "custom_openspec_workflow.install.executable_in_path",
+                return_value=None,
+            ):
+                return_code, stdout, stderr = self.run_cli(
+                    self.cli_arguments(root, "--json", "--yes"),
+                )
+
+            self.assertEqual(return_code, 0, stderr)
+            result = json.loads(stdout)
+            plan = json.loads(stderr)
+            self.assertIn("operation", result)
+            self.assertIn("plan", result)
+            self.assertIn("prerequisites", result)
+            self.assertIn("operation", plan)
+            for output in (stdout, stderr):
+                self.assertNotIn(PROJECT_SHORT_NAME, output)
+                self.assertNotIn(PROJECT_ALTERNATE_NAME, output)
+                self.assertNotIn(PROJECT_IDENTITY, output)
 
     def test_yes_install_keeps_missing_prerequisite_warning_and_applies(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

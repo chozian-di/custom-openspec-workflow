@@ -5,6 +5,11 @@ import unittest
 
 import yaml
 
+from custom_openspec_workflow import (
+    PACKAGE_NAME,
+    PROJECT_ALTERNATE_NAME,
+    PROJECT_SHORT_NAME,
+)
 from custom_openspec_workflow.host import UnsupportedHostError, discover_host
 
 
@@ -28,6 +33,20 @@ class SkillContractTests(unittest.TestCase):
         self.assertNotIn("Core loop", text)
         self.assertNotIn("one question at a time", text)
         self.assertNotIn("relentlessly", text)
+
+    def test_identity_is_present_in_static_surfaces_without_renaming_skill(self) -> None:
+        root = Path(__file__).parents[1]
+        skill = self.package_file("custom-openspec-grill/SKILL.md")
+        readme = (root / "README.md").read_text(encoding="utf-8")
+        metadata = (root / "pyproject.toml").read_text(encoding="utf-8")
+
+        self.assertIn("name: custom-openspec-grill", skill)
+        self.assertIn("official package name", skill)
+        self.assertIn("short name", readme)
+        for surface in (skill, readme, metadata):
+            self.assertIn(PACKAGE_NAME, surface)
+            self.assertIn(PROJECT_SHORT_NAME, surface)
+            self.assertIn(PROJECT_ALTERNATE_NAME, surface)
 
     def test_skill_preflights_sources_and_preserves_read_only_snapshots(self) -> None:
         text = self.package_file("custom-openspec-grill/SKILL.md")

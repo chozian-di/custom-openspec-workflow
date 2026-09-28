@@ -6,6 +6,9 @@ compatibility: codex
 
 # Custom OpenSpec Grill
 
+The official package name is `custom-openspec-workflow`. Its short name is
+`COW`, and it is also known as "chozian's OpenSpec Workflow".
+
 This skill coordinates the upstream `grill-me` skill with OpenSpec planning.
 It does not contain a question process and it does not implement project code.
 It does not implement project changes.

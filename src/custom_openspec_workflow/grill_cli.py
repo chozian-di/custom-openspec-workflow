@@ -8,6 +8,7 @@ from pathlib import Path
 import sys
 from typing import Sequence
 
+from . import PROJECT_IDENTITY
 from .grill import (
     ExistingGrillContextError,
     GrillError,
@@ -21,7 +22,7 @@ from .grill import (
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="custom-openspec-grill",
-        description="Stage or attach delegated Grill Me context for OpenSpec.",
+        description=f"Stage or attach delegated Grill Me context for {PROJECT_IDENTITY}.",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 

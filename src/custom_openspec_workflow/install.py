@@ -19,6 +19,7 @@ import sys
 import tempfile
 from typing import Any, Iterable, Sequence
 
+from . import PROJECT_IDENTITY
 from .grill import (
     GRILL_ME_VALUE,
     SIMPLE_ENGLISH_VALUE,
@@ -1181,6 +1182,7 @@ def uninstall_user(
 
 def _print_human_plan(plan: OperationPlan) -> None:
     print(f"custom-openspec-install {plan.operation} plan")
+    print(PROJECT_IDENTITY)
     for entry in plan.entries:
         suffix = f" ({entry.reason})" if entry.reason else ""
         print(f"{entry.operation}: {entry.path}{suffix}")
@@ -1211,6 +1213,7 @@ def _emit_payload(payload: dict[str, Any], *, as_json: bool) -> None:
         f"custom-openspec-install {payload.get('operation', 'operation')} "
         f"{payload.get('status', 'completed')}"
     )
+    print(PROJECT_IDENTITY)
     for key, value in payload.items():
         if key in {"plan", "conflicts", "modified"}:
             continue
@@ -1245,7 +1248,7 @@ def _confirm(plan: OperationPlan, *, as_json: bool) -> bool:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="custom-openspec-install",
-        description="Install or uninstall the custom OpenSpec helpers for Codex.",
+        description=f"Install or uninstall the {PROJECT_IDENTITY} helpers for Codex.",
     )
     parser.add_argument("--host")
     parser.add_argument("--skills-dir", type=Path)
@@ -1331,7 +1334,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.as_json:
             print(json.dumps({"error": str(exc), "status": "error"}, indent=2, sort_keys=True))
         else:
-            print(f"custom-openspec-install refused the operation: {exc}", file=sys.stderr)
+            print(
+                f"{PROJECT_IDENTITY}: custom-openspec-install refused the operation: {exc}",
+                file=sys.stderr,
+            )
         return 2
 
 

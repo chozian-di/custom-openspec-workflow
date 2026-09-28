@@ -6,7 +6,12 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from custom_openspec_workflow import PACKAGE_NAME
+from custom_openspec_workflow import (
+    PACKAGE_NAME,
+    PROJECT_ALTERNATE_NAME,
+    PROJECT_IDENTITY,
+    PROJECT_SHORT_NAME,
+)
 from custom_openspec_workflow.paths import (
     default_cache_root,
     default_data_root,
@@ -20,6 +25,11 @@ from custom_openspec_workflow.paths import (
 class PackagePathTests(unittest.TestCase):
     def test_package_namespace_and_resources_use_renamed_package(self) -> None:
         self.assertEqual(PACKAGE_NAME, "custom-openspec-workflow")
+        self.assertEqual(PROJECT_SHORT_NAME, "COW")
+        self.assertEqual(PROJECT_ALTERNATE_NAME, "chozian's OpenSpec Workflow")
+        self.assertIn(PACKAGE_NAME, PROJECT_IDENTITY)
+        self.assertIn(PROJECT_SHORT_NAME, PROJECT_IDENTITY)
+        self.assertIn(PROJECT_ALTERNATE_NAME, PROJECT_IDENTITY)
 
         policy = package_data_path("openspec-policy.yaml")
         skill = package_data_path("custom-openspec-grill/SKILL.md")

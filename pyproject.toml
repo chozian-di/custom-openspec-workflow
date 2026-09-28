@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "custom-openspec-workflow"
 version = "0.1.0"
-description = "A user-level policy and thin Grill Me adapter for stock OpenSpec."
+description = "custom-openspec-workflow (COW, also known as \"chozian's OpenSpec Workflow\") provides a user-level policy and thin Grill Me adapter for stock OpenSpec."
 requires-python = ">=3.10"
 dependencies = ["PyYAML>=6.0"]
 
