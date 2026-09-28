@@ -38,10 +38,13 @@ directory is `~/.agents/skills`. It looks for the upstream skill at
 
 1. Find the installed upstream skill named `grill-me` in the selected user-level skills directory.
 2. If `grill-me/SKILL.md` is missing, report the checked directory.
-3. Tell the user to install `skills/grill-me` from `satya-janghu/agent-skills`.
-4. Refer the user to the package README. Stop and leave existing Grill source material unchanged.
-5. Delegate the requirements session to the upstream `grill-me` skill by using the host skill invocation for `grill-me`.
-6. Wait for the upstream skill to return its distilled result. Do not ask a second set of questions in this adapter.
+3. State that Grill cannot run until `grill-me` is installed.
+4. Tell the user to install `skills/grill-me` from `satya-janghu/agent-skills`.
+5. Tell the user to read the package README for host-specific instructions.
+6. State that normal OpenSpec Explore and Propose work remains available.
+7. Stop and leave existing Grill source material unchanged.
+8. Delegate the requirements session to the upstream `grill-me` skill by using the host skill invocation for `grill-me`.
+9. Wait for the upstream skill to return its distilled result. Do not ask a second set of questions in this adapter.
 
 The upstream skill owns the questions and the session log. This adapter does
 not copy its prompts, question lenses, logging rules, or interrogation logic.

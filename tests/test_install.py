@@ -177,7 +177,14 @@ class InstallTests(unittest.TestCase):
             self.assertEqual(simple_english.value, "helps write clear documentation with short sentences, active voice, and consistent terms.")
             self.assertEqual(openspec.status, "missing")
             self.assertEqual(openspec.checked, "openspec on PATH")
-            self.assertIn("--openspec-executable", openspec.remediation)
+            for phrase in (
+                "npm install -g @fission-ai/openspec@latest",
+                "openspec --version",
+                "--openspec-executable /path/to/openspec",
+                "workflow cannot function until OpenSpec is installed",
+                "does not install OpenSpec",
+            ):
+                self.assertIn(phrase, openspec.remediation)
             self.assertFalse(plan.conflicts)
             self.assertFalse(root.joinpath("skills").exists())
             self.assertFalse(root.joinpath("bin").exists())
@@ -546,8 +553,8 @@ class InstallTests(unittest.TestCase):
 
             self.assertEqual(return_code, 0)
             self.assertEqual(stderr, "")
-            self.assertLess(stdout.index("create:"), stdout.index("Apply this install operation?"))
-            self.assertLess(stdout.index("warning:"), stdout.index("Apply this install operation?"))
+            self.assertLess(stdout.index("create:"), stdout.index("Continue with package installation?"))
+            self.assertLess(stdout.index("warning:"), stdout.index("Continue with package installation?"))
             self.assertIn("satya-janghu/agent-skills", stdout)
             self.assertIn(
                 "value: surfaces unclear intent, hidden constraints, decisions, tradeoffs, non-goals, and open questions before planning.",
@@ -561,6 +568,8 @@ class InstallTests(unittest.TestCase):
                 stdout.index("warning: Install satya-janghu/agent-skills"),
                 stdout.index("warning: Install AminBlg/SimpleEnglish"),
             )
+            self.assertIn("Continue with package installation?", stdout)
+            self.assertLess(stdout.index("warning:"), stdout.index("Continue with package installation?"))
             self.assertIn("cancelled", stdout)
             self.assertFalse(self.layout(root)["install_dir"].exists())
             self.assertFalse(self.layout(root)["skills_dir"].exists())
@@ -706,16 +715,23 @@ class InstallTests(unittest.TestCase):
     def test_json_cli_confirmation_plan_precedes_prompt_and_cancellation_result(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            return_code, stdout, stderr = self.run_cli(
-                self.cli_arguments(root, "--json"),
-                input_text="n\n",
-                interactive=True,
-            )
+            with patch(
+                "custom_openspec_workflow.install.executable_in_path",
+                return_value=None,
+            ):
+                return_code, stdout, stderr = self.run_cli(
+                    self.cli_arguments(root, "--json"),
+                    input_text="n\n",
+                    interactive=True,
+                )
 
             self.assertEqual(return_code, 0)
             result = json.loads(stdout)
             self.assertEqual(result["status"], "cancelled")
-            self.assertLess(stderr.index('"plan"'), stderr.index("Apply this install operation?"))
+            self.assertLess(
+                stderr.index('"plan"'),
+                stderr.index("Continue with package installation?"),
+            )
             self.assertFalse(self.layout(root)["install_dir"].exists())
 
     def test_json_dry_run_returns_plan_without_writing(self) -> None:

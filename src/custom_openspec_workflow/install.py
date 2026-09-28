@@ -30,6 +30,10 @@ from .grill import (
 )
 from .host import HostLayout, UnsupportedHostError, discover_host, executable_in_path
 from .paths import default_cache_root, default_data_root
+from .prerequisites import (
+    missing_openspec_acknowledgment_prompt,
+    missing_openspec_message,
+)
 
 
 MANIFEST_FILENAME = "manifest.json"
@@ -520,8 +524,7 @@ def _collect_prerequisites(layout: HostLayout) -> list[PrerequisiteResult]:
         checked="openspec on PATH",
         resolved=str(openspec) if openspec is not None else None,
         remediation=(
-            "Install OpenSpec so the default `openspec` command is on PATH, or "
-            "pass an explicit `--openspec-executable` value to `custom-openspec-init`."
+            missing_openspec_message()
             if openspec is None
             else ""
         ),
@@ -1198,7 +1201,10 @@ def _print_human_plan(plan: OperationPlan) -> None:
             if prerequisite.value:
                 print(f"  value: {prerequisite.value}")
             if prerequisite.remediation:
-                print(f"  warning: {prerequisite.remediation}")
+                lines = prerequisite.remediation.splitlines()
+                print(f"  warning: {lines[0]}")
+                for line in lines[1:]:
+                    print(f"    {line}")
     if plan.conflicts:
         print("conflicts:")
         for conflict in plan.conflicts:
@@ -1232,7 +1238,14 @@ def _emit_json_plan(plan: OperationPlan) -> None:
 
 
 def _confirm(plan: OperationPlan, *, as_json: bool) -> bool:
-    prompt = f"Apply this {plan.operation} operation? [y/N] "
+    missing_openspec = any(
+        item.name == "openspec" and item.status == "missing"
+        for item in plan.prerequisites
+    )
+    if plan.operation == "install" and missing_openspec:
+        prompt = missing_openspec_acknowledgment_prompt()
+    else:
+        prompt = f"Apply this {plan.operation} operation? [y/N] "
     if as_json:
         print(prompt, file=sys.stderr, end="", flush=True)
     else:

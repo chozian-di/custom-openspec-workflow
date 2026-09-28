@@ -12,7 +12,9 @@ import sys
 from typing import Any, Sequence
 
 from . import CORE_WORKFLOWS, PROJECT_IDENTITY, SUPPORTED_SCHEMA, VERIFY_WORKFLOW
+from .host import executable_in_path
 from .paths import policy_path
+from .prerequisites import missing_openspec_message
 from .yaml_config import (
     ConfigurationError,
     merge_policy,
@@ -185,6 +187,11 @@ def _target_has_verify_skill(target: Path) -> bool:
     return (target / ".agents" / "skills" / "openspec-verify-change" / "SKILL.md").is_file()
 
 
+def _require_openspec_executable(executable: str) -> None:
+    if executable_in_path(executable) is None:
+        raise BootstrapError(missing_openspec_message(executable))
+
+
 def _validate_target(runner: OpenSpecRunner, target: Path) -> None:
     output = runner.require(
         ["validate", "--all", "--json", "--no-interactive"],
@@ -223,6 +230,7 @@ def bootstrap(
             f"Unsupported OpenSpec host selection {tools!r}. This package supports Codex only."
         )
 
+    _require_openspec_executable(openspec_executable)
     runner = OpenSpecRunner(openspec_executable)
     config_path = target / "openspec" / "config.yaml"
     openspec_dir = target / "openspec"

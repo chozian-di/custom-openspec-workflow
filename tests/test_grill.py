@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import os
+import json
+from contextlib import redirect_stdout
+import io
 import tempfile
 from pathlib import Path
 import unittest
@@ -17,6 +20,7 @@ from custom_openspec_workflow.grill import (
     render_grill_context,
     stage_source,
 )
+from custom_openspec_workflow.grill_cli import main as grill_main
 
 
 SOURCE = """# Grill: package policy
@@ -203,4 +207,36 @@ class GrillTests(unittest.TestCase):
             self.assertIn("Install satya-janghu/agent-skills", result["failureReason"])
             self.assertIn("skills/grill-me", result["failureReason"])
             self.assertIn("package README", result["failureReason"])
+            self.assertIn("Grill cannot run until `grill-me` is installed", result["failureReason"])
+            self.assertIn("Normal OpenSpec Explore and Propose work remains available", result["failureReason"])
+            self.assertEqual(
+                result["checkedSkillsDir"],
+                str((root / "missing-skills").resolve()),
+            )
             self.assertEqual(source.read_bytes(), before)
+
+    def test_missing_dependency_is_reported_in_compatibility_json(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "source.md"
+            source.write_text(SOURCE, encoding="utf-8")
+            skills_dir = root / "missing-skills"
+            output = io.StringIO()
+
+            with redirect_stdout(output):
+                return_code = grill_main(
+                    [
+                        "compatibility",
+                        "--source",
+                        str(source),
+                        "--skills-dir",
+                        str(skills_dir),
+                        "--json",
+                    ]
+                )
+
+            self.assertEqual(return_code, 1)
+            result = json.loads(output.getvalue())
+            self.assertFalse(result["passed"])
+            self.assertEqual(result["checkedSkillsDir"], str(skills_dir.resolve()))
+            self.assertIn("skills/grill-me", result["failureReason"])

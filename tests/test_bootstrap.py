@@ -8,6 +8,7 @@ import sys
 import tempfile
 import textwrap
 import unittest
+from unittest.mock import patch
 
 from custom_openspec_workflow.bootstrap import BootstrapError, NonStockSchemaError, bootstrap
 
@@ -130,3 +131,58 @@ class BootstrapTests(unittest.TestCase):
                 bootstrap(target, openspec_executable=str(executable))
             self.assertFalse((target / "openspec" / "config.yaml").exists())
             self.assertEqual(global_path.read_text(encoding="utf-8"), before_global)
+
+    def test_missing_default_executable_stops_before_configuration_work(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            target = root / "project"
+            target.mkdir()
+            sentinel = target / "keep.txt"
+            sentinel.write_text("unchanged\n", encoding="utf-8")
+
+            with patch(
+                "custom_openspec_workflow.bootstrap.executable_in_path",
+                return_value=None,
+            ):
+                with self.assertRaises(BootstrapError) as raised:
+                    bootstrap(target)
+
+            message = str(raised.exception)
+            self.assertIn("openspec", message)
+            self.assertIn("workflow cannot function until OpenSpec is installed", message)
+            self.assertIn("npm install -g @fission-ai/openspec@latest", message)
+            self.assertIn("openspec --version", message)
+            self.assertIn("--openspec-executable /path/to/openspec", message)
+            self.assertEqual(sentinel.read_text(encoding="utf-8"), "unchanged\n")
+            self.assertEqual(list(target.iterdir()), [sentinel])
+
+    def test_runnable_explicit_executable_is_selected(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            target = root / "project"
+            target.mkdir()
+            executable, global_path = self.fake_openspec(root)
+
+            with patch.dict("os.environ", {"FAKE_OPENSPEC_GLOBAL": str(global_path)}):
+                result = bootstrap(target, openspec_executable=str(executable))
+
+            self.assertTrue(result.verify_enabled)
+            self.assertTrue((target / "openspec" / "config.yaml").is_file())
+
+    def test_unavailable_explicit_executable_stops_without_writes(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            target = root / "project"
+            target.mkdir()
+            sentinel = target / "keep.txt"
+            sentinel.write_text("unchanged\n", encoding="utf-8")
+            missing = root / "missing-openspec"
+
+            with self.assertRaises(BootstrapError) as raised:
+                bootstrap(target, openspec_executable=str(missing))
+
+            message = str(raised.exception)
+            self.assertIn(str(missing), message)
+            self.assertIn("npm install -g @fission-ai/openspec@latest", message)
+            self.assertEqual(sentinel.read_text(encoding="utf-8"), "unchanged\n")
+            self.assertEqual(list(target.iterdir()), [sentinel])

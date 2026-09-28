@@ -79,6 +79,13 @@ The installer shows a plan before it changes a user-level path. The plan lists
 created, replaced, preserved, conflicting, and removed paths. The installer
 asks for confirmation after it shows the plan.
 
+If the plan reports a missing `openspec` command, it states that this workflow
+cannot function until OpenSpec is installed. An interactive install asks if you
+want to continue with package installation. If you decline, the installer
+changes no user-level path. The prompt requests explicit acknowledgment. Use
+`-y` or `--yes` as that acknowledgment. The installer does not install
+OpenSpec.
+
 The installer places these files in user-level locations:
 
 - `~/.agents/skills/custom-openspec-grill/SKILL.md`.
@@ -230,8 +237,9 @@ For an install or dry run, the installer checks these prerequisites:
 If the upstream Grill Me skill is missing, the plan names the checked skills
 directory and reports a warning. Install `skills/grill-me` from
 `satya-janghu/agent-skills` with the host method that you use. Read the
-instructions in this README before you install the skill. The package does not
-install or change Grill Me.
+instructions in this README before you install the skill. Grill cannot run
+until `grill-me` is installed. Normal OpenSpec Explore and Propose work remains
+available. The package does not install or change Grill Me.
 
 If the upstream Simple English skill is missing, the plan names the checked
 skills directory and reports a warning. Install only the `skills/simple-english`
@@ -245,15 +253,24 @@ This command installs the skill only. It does not install the upstream session
 hook or output style. The package does not install, update, or remove Simple English.
 It only reports whether `simple-english/SKILL.md` is available.
 
-If the default `openspec` command is missing, the plan reports a warning. The
-bootstrap helper accepts an explicit executable path:
+If the default `openspec` command is missing, the plan reports a warning. Install
+OpenSpec outside this project:
+
+```text
+npm install -g @fission-ai/openspec@latest
+openspec --version
+```
+
+The installer does not run these commands or modify an OpenSpec installation.
+The bootstrap helper accepts an explicit executable path when `openspec` is not
+on `PATH`:
 
 ```text
 custom-openspec-init . --openspec-executable /path/to/openspec
 ```
 
-The plan shows missing prerequisite warnings before a human confirmation
-prompt. A JSON write-mode plan goes to standard error before confirmation or
+The plan shows missing prerequisite warnings before the confirmation prompt. A
+JSON write-mode plan and prompt go to standard error before confirmation or
 apply. The final JSON result goes to standard output. Both JSON objects include
 the `prerequisites` results. A JSON dry run includes the same results in its
 standard output and does not change files.
@@ -272,6 +289,12 @@ Run it from a repository path:
 ```text
 custom-openspec-init .
 ```
+
+Before it reads or changes OpenSpec configuration, the helper checks the
+selected executable. If the executable is missing, the helper stops and shows
+the external install commands, the `openspec --version` command, and the
+`--openspec-executable /path/to/openspec` override. It does not change the
+target repository or global configuration.
 
 The helper performs these actions:
 

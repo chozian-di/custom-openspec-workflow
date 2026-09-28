@@ -29,6 +29,8 @@ class SkillContractTests(unittest.TestCase):
         self.assertIn("satya-janghu/agent-skills", text)
         self.assertIn("skills/grill-me", text)
         self.assertIn("package README", text)
+        self.assertIn("Grill cannot run until `grill-me` is installed", text)
+        self.assertIn("normal OpenSpec Explore and Propose work remains available", text)
         self.assertNotIn("Question lenses", text)
         self.assertNotIn("Core loop", text)
         self.assertNotIn("one question at a time", text)

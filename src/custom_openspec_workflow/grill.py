@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
 import tempfile
@@ -43,8 +44,10 @@ def grill_me_install_hint() -> str:
     """Return the shared remediation for a missing upstream Grill Me skill."""
 
     return (
-        f"Install {GRILL_ME_SOURCE} at {GRILL_ME_SKILL_PATH} for the upstream `grill-me` "
-        "skill. Read the package README for host-specific installation instructions."
+        f"Install {GRILL_ME_SOURCE} at {GRILL_ME_SKILL_PATH}. "
+        "Grill cannot run until `grill-me` is installed. "
+        "Read the package README for host-specific installation instructions. "
+        "Normal OpenSpec Explore and Propose work remains available."
     )
 
 
@@ -120,6 +123,15 @@ def discover_simple_english_skill(skills_dir: Path | None = None) -> Path | None
     """Find the installed upstream Simple English skill for the supported host."""
 
     return _discover_skill("simple-english", skills_dir)
+
+
+def _selected_skills_dir(skills_dir: Path | None) -> Path:
+    if skills_dir is not None:
+        return skills_dir.expanduser().resolve()
+    configured = os.environ.get("CUSTOM_OPENSPEC_WORKFLOW_SKILLS_DIR")
+    if configured:
+        return Path(configured).expanduser().resolve()
+    return (Path.home() / ".agents" / "skills").resolve()
 
 
 @dataclass(frozen=True)
@@ -369,10 +381,12 @@ def _compatibility_failure(
     source: Path,
     reason: str,
     contract: dict[str, bool],
+    checked_skills_dir: Path,
 ) -> dict[str, object]:
     return {
         "passed": False,
         "dependencyAvailable": False,
+        "checkedSkillsDir": str(checked_skills_dir),
         "dependencyName": "",
         "dependencyPath": "",
         "dependencyError": reason,
@@ -405,15 +419,17 @@ def compatibility_check(
 
     del staging_dir
     source = source.expanduser().resolve()
-    dependency = discover_grill_me_skill(skills_dir)
+    checked_skills_dir = _selected_skills_dir(skills_dir)
+    dependency = discover_grill_me_skill(checked_skills_dir)
     contract = _adapter_contract()
     if dependency is None:
-        hint = str(skills_dir.expanduser().resolve()) if skills_dir else "the Codex user-level skills directory"
         return _compatibility_failure(
             source,
-            f"Installed upstream grill-me skill was not found in {hint}. "
-            f"{grill_me_install_hint()} Pass --skills-dir to select another checked location.",
+            f"Installed upstream grill-me skill was not found in checked skills directory "
+            f"{checked_skills_dir}. {grill_me_install_hint()} "
+            "Pass --skills-dir to select another checked location.",
             contract,
+            checked_skills_dir,
         )
 
     source_before = _file_snapshot(source.parent)
@@ -521,6 +537,7 @@ def compatibility_check(
     return {
         "passed": not failures,
         "dependencyAvailable": True,
+        "checkedSkillsDir": str(checked_skills_dir),
         "dependencyName": dependency_name,
         "dependencyPath": str(dependency),
         "dependencySha256": dependency_digest,
