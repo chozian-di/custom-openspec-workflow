@@ -126,6 +126,7 @@ class ValidationMatrixTests(unittest.TestCase):
             root = Path(directory)
             target = root / "brownfield"
             shutil.copytree(FIXTURES / "brownfield", target)
+            self.assertFalse((target / ".git").exists())
 
             first = run_script("custom-openspec-init", str(target), "--json")
             self.assertEqual(first.returncode, 0, first.stderr)
@@ -133,10 +134,12 @@ class ValidationMatrixTests(unittest.TestCase):
             self.assertTrue(first_payload["verifyEnabled"])
             self.assertIn("openspec/config.yaml", "\n".join(first_payload["changedFiles"]))
             self.assertEqual((target / "README.txt").read_text(encoding="utf-8"), "Brownfield fixture content. Keep this file during bootstrap.\n")
+            self.assertFalse((target / ".git").exists())
 
             second = run_script("custom-openspec-init", str(target), "--json")
             self.assertEqual(second.returncode, 0, second.stderr)
             self.assertEqual(json.loads(second.stdout)["changedEntries"], [])
+            self.assertFalse((target / ".git").exists())
 
             stage = run_script(
                 "custom-openspec-grill",
@@ -224,6 +227,24 @@ class ValidationMatrixTests(unittest.TestCase):
             refused = run_script("custom-openspec-init", str(non_stock.parent), "--json")
             self.assertEqual(refused.returncode, 2)
             self.assertEqual(non_stock_config.read_text(encoding="utf-8"), "schema: custom\n")
+
+    def test_git_lifecycle_matrix_keeps_archive_guidance_advisory_and_git_free(self) -> None:
+        policy = (PROJECT_ROOT / "src" / "custom_openspec_workflow" / "data" / "openspec-policy.yaml").read_text(encoding="utf-8")
+        readme = (PROJECT_ROOT / "README.md").read_text(encoding="utf-8")
+        configuration = (PROJECT_ROOT / "openspec" / "config.yaml").read_text(encoding="utf-8")
+        python_sources = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in (PROJECT_ROOT / "src").rglob("*.py")
+        ).lower()
+
+        self.assertIn("schema: spec-driven", configuration)
+        self.assertIn("This is advisory guidance.", policy)
+        self.assertIn("Recommend Git commits only after native Archive completes successfully", policy)
+        self.assertIn("Keep this recommendation advisory and user controlled", policy)
+        self.assertIn("It performs no automatic Git mutation", readme)
+        self.assertIn("does not create commits, stage", readme)
+        for command in ("git commit", "git init", "git branch", "git worktree", "pre-commit", "commit-msg"):
+            self.assertNotIn(command, python_sources)
 
     def test_matrix_covers_the_twelve_lifecycle_scenarios_as_advisory_evidence(self) -> None:
         policy = (PROJECT_ROOT / "src" / "custom_openspec_workflow" / "data" / "openspec-policy.yaml").read_text(encoding="utf-8")

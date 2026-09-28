@@ -672,6 +672,95 @@ scenario before Archive is treated as ready.
 This guidance is advisory. It does not hard-enforce native Archive behavior.
 Native task protection and explicit user choices remain authoritative.
 
+## Git lifecycle guidance
+
+This package gives advisory Git guidance. Git owns commits, branches, hooks,
+merges, rebases, and source isolation.
+
+During normal Explore, Propose, Apply, Update, Verify, UAT, and pre-Archive work, do not recommend a Git commit. It does not recommend a routine pre-Archive safety commit.
+
+If you explicitly request a pause before Archive while the active change is
+incomplete, the guidance recommends an advisory checkpoint with this message:
+
+```text
+docs(openspec): checkpoint <change-name>
+```
+
+This checkpoint records an interrupted handoff. It does not mark unfinished
+tasks complete. The package does not create the commit.
+
+If Archive is running or fails, the guidance does not recommend an Archive
+commit. Recommend Git commits only after native Archive completes successfully
+and the result is understood. After successful Archive, strongly recommend the relevant Git commits before the session ends. This recommendation remains advisory and user controlled.
+
+Git commit guidance is advisory and user controlled. It does not replace
+OpenSpec commands, task state, or explicit user decisions.
+
+### Two commits after Archive
+
+Use separate commits for the archived OpenSpec content and the intended
+non-OpenSpec outcome. Use one OpenSpec Archive commit first and one outcome
+commit only when intended non-OpenSpec changes exist. If no non-OpenSpec
+outcome exists, use only the OpenSpec Archive commit.
+
+Use explicit file lists for both commits. Include only the archived change
+paths in the OpenSpec commit, only the intended non-OpenSpec paths in the
+outcome commit, and no unrelated worktree paths.
+
+For example, replace each placeholder with an exact path from the archived
+change:
+
+```text
+git commit --only \
+  -m "docs(openspec): archive <change-name>" \
+  -- \
+  openspec/changes/archive/<date>-<change-name>/proposal.md \
+  openspec/changes/archive/<date>-<change-name>/design.md \
+  openspec/changes/archive/<date>-<change-name>/specs/<capability>/spec.md \
+  openspec/changes/archive/<date>-<change-name>/tasks.md
+```
+
+For the non-OpenSpec outcome, list only the files that implement that outcome:
+
+```text
+git commit --only \
+  -m "docs(workflow): add Git lifecycle guidance" \
+  -- \
+  src/custom_openspec_workflow/data/openspec-policy.yaml \
+  README.md \
+  tests/test_skill_contract.py \
+  tests/test_validation_matrix.py
+```
+
+Use the GSD-compatible `type(scope): subject` form for commit messages.
+Describe the outcome, not the process. Do not create a separate `wip` commit
+type.
+
+Run repository `pre-commit` and `commit-msg` hooks normally. This package does
+not install project hooks. It does not recommend `--no-verify` by default. If
+a hook rejects a commit, report the result and let the user decide.
+
+A protected branch is a branch with extra repository rules. Before a
+recommended commit, warn when the current branch is `main`, `master`,
+`trunk`, `staging`, `develop`, `development`, or `dev`. These are common
+protected-branch candidates. Do not claim that a branch is protected or block
+the commit.
+
+If an agent-initiated rollback is needed, prefer `git revert --no-commit` so
+the user can review the rollback before committing it.
+
+When the user or repository chooses a merge strategy, recommend a squash merge
+without requiring it.
+
+If successful Archive makes the commit recommendation relevant and the
+project root has no Git repository, suggest `git init` and wait for the user's
+action. Do not run `git init` automatically. Do not create or modify `.git`.
+Do not suggest Git initialization before Archive.
+
+The examples are recommendations. The package does not create commits, stage
+files, initialize Git, install hooks, manage branches, create worktrees, or
+change Git state automatically. It performs no automatic Git mutation.
+
 ## Re-anchor during Apply
 
 Re-anchoring means refreshing the agent's understanding from persisted OpenSpec

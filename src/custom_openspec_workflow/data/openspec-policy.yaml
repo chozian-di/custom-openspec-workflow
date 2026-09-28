@@ -57,6 +57,10 @@ operations:
       - "After all implementation tasks and applicable UAT tasks are resolved, recommend /opsx:verify before Archive. Verify is a workflow review, not a tasks.md checkbox."
       - "Verify must compare requirements, scenarios, task state, automated test results, and applicable UAT results. A Verify result covers only the substantive implementation state that it inspected."
       - "If a substantive implementation change follows Verify, treat the result as stale. Run Apply, affected UAT when needed, and Verify again. A non-substantive change can retain Verify only when it cannot affect correctness. Run Verify again when uncertain."
+      - "During normal Explore, Propose, Apply, Update, Verify, UAT, and pre-Archive work, do not recommend a Git commit."
+      - "If the user explicitly requests a pause before Archive while the active change is incomplete, recommend an advisory checkpoint with the message `docs(openspec): checkpoint <change-name>`. Do not mark unfinished tasks complete."
+      - "If the session ends without successful Archive or an explicit user pause, do not create or recommend an interrupted-handoff commit."
+      - "Git commit guidance is advisory and user controlled. It does not replace OpenSpec commands, task state, or explicit user decisions."
       - "Guidance is advisory. It does not replace OpenSpec Apply, Update, Verify, or Archive and does not prove that a user completed UAT."
   archive:
     guidance:
@@ -66,3 +70,15 @@ operations:
       - "If required UAT is incomplete, name each scenario and ask the user to perform it or explicitly record HUMAN UAT - WAIVED BY USER for that scenario. Do not self-waive or recommend Archive by default."
       - "If a later substantive change affects a passed or waived scenario, reopen only that scenario and repeat the required user disposition before Archive."
       - "Preserve unresolved requirements, automated test evidence, Grill context, and project configuration. Do not claim that guidance alone made Archive safe."
+      - "Recommend Git commits only after native Archive completes successfully and the result is understood. Do not recommend an Archive commit while Archive is running or after Archive reports failure."
+      - "After successful Archive, strongly recommend the relevant Git commits before the session ends. Keep this recommendation advisory and user controlled."
+      - "Use separate commits for the archived OpenSpec content and the intended non-OpenSpec outcome. Use one OpenSpec Archive commit first and one outcome commit only when intended non-OpenSpec changes exist."
+      - "Use explicit file lists for both commits. Include only the archived change paths in the OpenSpec commit, only the intended non-OpenSpec paths in the outcome commit, and no unrelated worktree paths."
+      - 'Use commit commands with explicit path arguments, such as `git commit --only <OpenSpec-path-1> <OpenSpec-path-2> -m "docs(openspec): archive <change-name>"`.'
+      - "Use GSD-compatible commit messages in the form `type(scope): subject`. Describe the outcome, not the process. Do not create a separate `wip` commit type."
+      - "Run repository `pre-commit` and `commit-msg` hooks normally. This package does not install project hooks and does not recommend `--no-verify` by default. If a hook rejects a commit, report the result and let the user decide."
+      - "Before a recommended commit, warn when the current branch is `main`, `master`, `trunk`, `staging`, `develop`, `development`, or `dev`. These are common protected-branch candidates. Do not claim that a branch is protected or block the commit."
+      - "If an agent-initiated rollback is needed, prefer `git revert --no-commit` so the user can review the rollback before committing it."
+      - "When the user or repository chooses a merge strategy, recommend a squash merge without requiring it."
+      - "If successful Archive makes the commit recommendation relevant and the project root has no Git repository, suggest `git init`. Do not run `git init` automatically and do not create or modify `.git`."
+      - "Do not install hooks, create commits, stage files, initialize Git, manage branches, create worktrees, or change Git state automatically."

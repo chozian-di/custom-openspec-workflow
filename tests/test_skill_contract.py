@@ -123,6 +123,51 @@ class SkillContractTests(unittest.TestCase):
         self.assertIn("archive", policy["operations"])
         self.assertNotIn("explore", policy["operations"])
 
+    def test_policy_limits_commit_guidance_to_archive_or_explicit_pause(self) -> None:
+        policy = yaml.safe_load(self.package_file("openspec-policy.yaml"))
+        apply_guidance = "\n".join(policy["operations"]["apply"]["guidance"])
+        archive_guidance = "\n".join(policy["operations"]["archive"]["guidance"])
+
+        self.assertIn("Git commit guidance is advisory", apply_guidance)
+        self.assertIn(
+            "During normal Explore, Propose, Apply, Update, Verify, UAT, and pre-Archive work, do not recommend a Git commit.",
+            apply_guidance,
+        )
+        self.assertIn("docs(openspec): checkpoint <change-name>", apply_guidance)
+        self.assertIn("Do not mark unfinished tasks complete", apply_guidance)
+        self.assertIn("without successful Archive or an explicit user pause", apply_guidance)
+        self.assertIn("only after native Archive completes successfully", archive_guidance)
+        self.assertIn("while Archive is running", archive_guidance)
+        self.assertIn("after Archive reports failure", archive_guidance)
+        self.assertIn("strongly recommend the relevant Git commits", archive_guidance)
+
+    def test_policy_documents_separable_git_commit_safety_guidance(self) -> None:
+        policy = yaml.safe_load(self.package_file("openspec-policy.yaml"))
+        guidance = "\n".join(policy["operations"]["archive"]["guidance"])
+
+        for phrase in (
+            "separate commits for the archived OpenSpec content and the intended non-OpenSpec outcome",
+            "one outcome commit only when intended non-OpenSpec changes exist",
+            "explicit file lists for both commits",
+            "no unrelated worktree paths",
+            "git commit --only",
+            "`type(scope): subject`",
+            "Describe the outcome, not the process",
+            "`pre-commit` and `commit-msg` hooks normally",
+            "does not recommend `--no-verify` by default",
+            "`git revert --no-commit`",
+            "recommend a squash merge without requiring it",
+            "suggest `git init`",
+            "Do not run `git init` automatically",
+            "change Git state automatically",
+        ):
+            self.assertIn(phrase, guidance)
+
+        for branch in ("main", "master", "trunk", "staging", "develop", "development", "dev"):
+            self.assertIn(f"`{branch}`", guidance)
+        self.assertIn("common protected-branch candidates", guidance)
+        self.assertIn("Do not claim that a branch is protected or block the commit", guidance)
+
     def test_readme_documents_the_grill_handoff_and_retention_rules(self) -> None:
         root = Path(__file__).parents[1]
         readme = (root / "README.md").read_text(encoding="utf-8")
@@ -142,6 +187,56 @@ class SkillContractTests(unittest.TestCase):
             "./scripts/custom-openspec-install",
         ):
             self.assertIn(phrase, readme)
+
+    def test_readme_documents_git_lifecycle_commit_boundaries(self) -> None:
+        root = Path(__file__).parents[1]
+        readme = (root / "README.md").read_text(encoding="utf-8")
+        lifecycle = " ".join(readme[readme.index("## Git lifecycle guidance") :].split())
+
+        self.assertLess(readme.index("## Archive"), readme.index("## Git lifecycle guidance"))
+        self.assertLess(readme.index("## Git lifecycle guidance"), readme.index("## Re-anchor during Apply"))
+        self.assertLess(
+            lifecycle.index("docs(openspec): checkpoint <change-name>"),
+            lifecycle.index("Recommend Git commits only after native Archive completes successfully"),
+        )
+        for phrase in (
+            "During normal Explore, Propose, Apply, Update, Verify, UAT, and pre-Archive work, do not recommend a Git commit.",
+            "routine pre-Archive safety commit",
+            "does not mark unfinished tasks complete",
+            "If Archive is running or fails, the guidance does not recommend an Archive commit.",
+            "strongly recommend the relevant Git commits before the session ends",
+            "Git commit guidance is advisory and user controlled",
+        ):
+            self.assertIn(phrase, lifecycle)
+
+    def test_readme_documents_git_commit_safety_and_no_automatic_mutation(self) -> None:
+        root = Path(__file__).parents[1]
+        readme = (root / "README.md").read_text(encoding="utf-8")
+        lifecycle = " ".join(readme[readme.index("## Git lifecycle guidance") :].split())
+
+        self.assertGreaterEqual(lifecycle.count("git commit --only"), 2)
+        for phrase in (
+            "separate commits for the archived OpenSpec content and the intended",
+            "explicit file lists for both commits",
+            "no unrelated worktree paths",
+            "openspec/changes/archive/<date>-<change-name>/proposal.md",
+            "src/custom_openspec_workflow/data/openspec-policy.yaml",
+            "`type(scope): subject`",
+            "Describe the outcome, not the process",
+            "`pre-commit` and `commit-msg` hooks normally",
+            "does not recommend `--no-verify` by default",
+            "`git revert --no-commit`",
+            "recommend a squash merge without requiring it",
+            "suggest `git init`",
+            "Do not run `git init` automatically",
+            "Do not create or modify `.git`",
+            "It performs no automatic Git mutation",
+        ):
+            self.assertIn(phrase, lifecycle)
+        for branch in ("main", "master", "trunk", "staging", "develop", "development", "dev"):
+            self.assertIn(f"`{branch}`", lifecycle)
+        self.assertIn("common protected-branch candidates", lifecycle)
+        self.assertIn("Do not claim that a branch is protected or block the commit", lifecycle)
 
     def test_unsupported_host_is_not_guessed(self) -> None:
         with self.assertRaises(UnsupportedHostError):
