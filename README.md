@@ -874,3 +874,9 @@ openspec status --change add-user-level-openspec-customization --json
 ```
 
 The package does not modify generated `openspec-*` skills or OpenSpec source.
+
+## License
+
+The project-owned content in this repository is available under the [MIT
+License](LICENSE). External dependencies and upstream skills keep their own
+licenses.

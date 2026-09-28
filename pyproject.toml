@@ -6,6 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "custom-openspec-workflow"
 version = "0.1.0"
 description = "custom-openspec-workflow (COW, also known as \"chozian's OpenSpec Workflow\") provides a user-level policy and thin Grill Me adapter for stock OpenSpec."
+license = { file = "LICENSE" }
 requires-python = ">=3.10"
 dependencies = ["PyYAML>=6.0"]
 
@@ -13,6 +14,9 @@ dependencies = ["PyYAML>=6.0"]
 custom-openspec-init = "custom_openspec_workflow.bootstrap:main"
 custom-openspec-grill = "custom_openspec_workflow.grill_cli:main"
 custom-openspec-install = "custom_openspec_workflow.install:main"
+
+[tool.setuptools]
+license-files = ["LICENSE"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
